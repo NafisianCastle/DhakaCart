@@ -19,7 +19,12 @@ const productsLimiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs for /products
 });
 
-app.get("/health", async (req, res) => {
+const healthLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // limit each IP to 60 health check requests per minute
+});
+
+app.get("/health", healthLimiter, async (req, res) => {
   try {
     await pool.query("SELECT 1");
     res.json({ status: "OK", db: "connected" });
