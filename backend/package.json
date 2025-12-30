@@ -34,7 +34,7 @@
     "node-pg-migrate": "^7.0.2"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
+    "jest": "^30.2.0",
     "supertest": "^6.3.3",
     "eslint": "^8.57.0",
     "eslint-plugin-security": "^1.7.1",
