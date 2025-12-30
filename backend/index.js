@@ -1,11 +1,11 @@
 const express = require("express");
-const { Pool } = require("pg");
-const { createClient } = require('redis');
 const rateLimit = require("express-rate-limit");
 const logger = require('./logger');
 const { register, databaseConnectionsTotal, databaseConnectionsActive, databaseQueryDuration, businessMetrics } = require('./metrics');
 const { correlationIdMiddleware, requestLoggingMiddleware, errorLoggingMiddleware } = require('./middleware');
 const HealthChecker = require('./health');
+const RedisConnectionPool = require('./redis');
+const DatabaseConnectionPool = require('./database');
 require("dotenv").config();
 
 const app = express();
@@ -15,77 +15,64 @@ app.use(express.json());
 app.use(correlationIdMiddleware);
 app.use(requestLoggingMiddleware);
 
-// Database connection with metrics
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+// Database connection pool initialization
+const dbPool = new DatabaseConnectionPool();
+let pool = null;
 
-// Redis connection (optional)
+// Initialize database connection
+(async () => {
+  try {
+    pool = await dbPool.initialize();
+    logger.info('Database connection pool initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize database connection pool', { error: error.message });
+    process.exit(1);
+  }
+})();
+
+// Redis connection pool initialization
+const redisPool = new RedisConnectionPool();
 let redisClient = null;
-if (process.env.REDIS_URL || process.env.REDIS_HOST) {
-  const redisConfig = process.env.REDIS_URL ?
-    { url: process.env.REDIS_URL } :
-    {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: process.env.REDIS_PORT || 6379,
-      password: process.env.REDIS_PASSWORD
-    };
 
-  redisClient = createClient(redisConfig);
-
-  redisClient.on('error', (err) => {
-    logger.error('Redis client error', { error: err.message });
-  });
-
-  redisClient.on('connect', () => {
-    logger.info('Redis client connected');
-  });
-
-  redisClient.on('ready', () => {
-    logger.info('Redis client ready');
-  });
-
-  redisClient.on('end', () => {
-    logger.info('Redis client disconnected');
-  });
-
-  // Connect to Redis
-  redisClient.connect().catch((err) => {
-    logger.error('Failed to connect to Redis', { error: err.message });
-    redisClient = null; // Disable Redis if connection fails
-  });
-}
+// Initialize Redis connection
+(async () => {
+  try {
+    redisClient = await redisPool.initialize();
+    if (redisClient) {
+      logger.info('Redis connection pool initialized successfully');
+    } else {
+      logger.info('Redis not configured or initialization failed, continuing without Redis');
+    }
+  } catch (error) {
+    logger.error('Failed to initialize Redis connection pool', { error: error.message });
+  }
+})();
 
 // Initialize health checker
-const healthChecker = new HealthChecker(pool, redisClient);
+const healthChecker = new HealthChecker(dbPool, redisPool);
 
 // Monitor database connection pool
-pool.on('connect', () => {
-  databaseConnectionsActive.inc();
-  logger.debug('Database connection established');
-});
+if (pool) {
+  pool.on('connect', () => {
+    databaseConnectionsActive.inc();
+    logger.debug('Database connection established');
+  });
 
-pool.on('remove', () => {
-  databaseConnectionsActive.dec();
-  logger.debug('Database connection removed');
-});
+  pool.on('remove', () => {
+    databaseConnectionsActive.dec();
+    logger.debug('Database connection removed');
+  });
 
-pool.on('error', (err) => {
-  logger.error('Database pool error', { error: err.message });
-  businessMetrics.apiErrors.labels('database_error', 'pool').inc();
-});
+  pool.on('error', (err) => {
+    logger.error('Database pool error', { error: err.message });
+    businessMetrics.apiErrors.labels('database_error', 'pool').inc();
+  });
 
-// Update total connections metric
-setInterval(() => {
-  databaseConnectionsTotal.set(pool.totalCount);
-}, 5000);
+  // Update total connections metric
+  setInterval(() => {
+    databaseConnectionsTotal.set(pool.totalCount);
+  }, 5000);
+}
 
 // Rate limiting
 const productsLimiter = rateLimit({
@@ -185,9 +172,10 @@ app.get("/live", (req, res) => {
   });
 });
 
-// Products endpoint with enhanced logging and metrics
+// Products endpoint with enhanced logging, metrics, and caching
 app.get("/products", productsLimiter, async (req, res) => {
   const startTime = Date.now();
+  const cacheKey = 'products:all';
 
   try {
     logger.info('Fetching products', {
@@ -195,13 +183,42 @@ app.get("/products", productsLimiter, async (req, res) => {
       userId: req.user?.id
     });
 
-    const result = await pool.query("SELECT * FROM products");
+    // Try to get from cache first
+    let cachedProducts = null;
+    if (redisPool && redisPool.isConnected) {
+      cachedProducts = await redisPool.getCachedData(cacheKey);
+      if (cachedProducts) {
+        logger.info('Products served from cache', {
+          correlationId: req.correlationId,
+          productCount: cachedProducts.length,
+          userId: req.user?.id
+        });
+
+        businessMetrics.productsViewed.inc();
+
+        return res.json({
+          data: cachedProducts,
+          count: cachedProducts.length,
+          timestamp: new Date().toISOString(),
+          correlationId: req.correlationId,
+          source: 'cache'
+        });
+      }
+    }
+
+    // Fetch from database if not in cache
+    const result = await dbPool.query("SELECT * FROM products");
     const queryTime = Date.now() - startTime;
 
     databaseQueryDuration.labels('select_products').observe(queryTime / 1000);
     businessMetrics.productsViewed.inc();
 
-    logger.info('Products fetched successfully', {
+    // Cache the results for 5 minutes
+    if (redisPool && redisPool.isConnected) {
+      await redisPool.setCachedData(cacheKey, result.rows, 300);
+    }
+
+    logger.info('Products fetched from database', {
       correlationId: req.correlationId,
       productCount: result.rows.length,
       dbResponseTime: queryTime,
@@ -212,7 +229,8 @@ app.get("/products", productsLimiter, async (req, res) => {
       data: result.rows,
       count: result.rows.length,
       timestamp: new Date().toISOString(),
-      correlationId: req.correlationId
+      correlationId: req.correlationId,
+      source: 'database'
     });
   } catch (err) {
     const queryTime = Date.now() - startTime;
@@ -239,7 +257,7 @@ const server = app.listen(5000, () => {
     port: 5000,
     environment: process.env.NODE_ENV || 'development',
     nodeVersion: process.version,
-    redisEnabled: !!redisClient
+    redisEnabled: !!redisPool
   });
 });
 
@@ -268,18 +286,21 @@ const gracefulShutdown = (signal) => {
 
     // Close database connections
     const dbClosePromise = new Promise((resolve) => {
-      pool.end(() => {
-        logger.info('Database connections closed');
+      dbPool.close().then(() => {
+        logger.info('Database connection pool closed');
+        resolve();
+      }).catch((err) => {
+        logger.warn('Error closing database connection pool', { error: err.message });
         resolve();
       });
     });
 
     // Close Redis connection
-    const redisClosePromise = redisClient ?
-      redisClient.quit().then(() => {
-        logger.info('Redis connection closed');
+    const redisClosePromise = redisPool ?
+      redisPool.disconnect().then(() => {
+        logger.info('Redis connection pool closed');
       }).catch((err) => {
-        logger.warn('Error closing Redis connection', { error: err.message });
+        logger.warn('Error closing Redis connection pool', { error: err.message });
       }) :
       Promise.resolve();
 

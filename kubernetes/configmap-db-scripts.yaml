@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dhakacart-db-scripts
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: database
+data:
+  migrate.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Starting database migration process..."
+    
+    # Wait for database to be ready
+    echo "Waiting for database connection..."
+    node scripts/migrate.js wait
+    
+    # Run migrations
+    echo "Running database migrations..."
+    node scripts/migrate.js up
+    
+    # Run seeding if SEED_DATABASE is true
+    if [ "$SEED_DATABASE" = "true" ]; then
+      echo "Seeding database with initial data..."
+      node scripts/seed.js
+    fi
+    
+    echo "Database setup completed successfully!"
+  
+  init-db.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Initializing database for DhakaCart..."
+    
+    # Check if this is a fresh installation
+    if [ "$FRESH_INSTALL" = "true" ]; then
+      echo "Fresh installation detected, running full setup..."
+      
+      # Wait for database
+      node scripts/migrate.js wait
+      
+      # Run migrations
+      node scripts/migrate.js up
+      
+      # Seed with initial data
+      node scripts/seed.js
+      
+      echo "Fresh installation completed!"
+    else
+      echo "Existing installation, running migrations only..."
+      
+      # Wait for database
+      node scripts/migrate.js wait
+      
+      # Run migrations
+      node scripts/migrate.js up
+      
+      echo "Migration completed!"
+    fi

@@ -156,4 +156,100 @@ output "app_pod_role_arn" {
 output "aws_load_balancer_controller_role_arn" {
   description = "AWS Load Balancer Controller IAM role ARN"
   value       = aws_iam_role.aws_load_balancer_controller.arn
+}# RD
+S Database Outputs
+output "rds_instance_id" {
+  description = "RDS instance ID"
+  value       = aws_db_instance.main.id
+}
+
+output "rds_instance_arn" {
+  description = "RDS instance ARN"
+  value       = aws_db_instance.main.arn
+}
+
+output "rds_instance_endpoint" {
+  description = "RDS instance endpoint"
+  value       = aws_db_instance.main.endpoint
+}
+
+output "rds_instance_port" {
+  description = "RDS instance port"
+  value       = aws_db_instance.main.port
+}
+
+output "rds_instance_address" {
+  description = "RDS instance address"
+  value       = aws_db_instance.main.address
+}
+
+output "rds_db_name" {
+  description = "RDS database name"
+  value       = aws_db_instance.main.db_name
+}
+
+output "rds_db_username" {
+  description = "RDS database username"
+  value       = aws_db_instance.main.username
+  sensitive   = true
+}
+
+output "rds_read_replica_endpoint" {
+  description = "RDS read replica endpoint"
+  value       = var.environment == "prod" && var.create_read_replica ? aws_db_instance.read_replica[0].endpoint : null
+}
+
+output "rds_secrets_manager_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing database credentials"
+  value       = aws_secretsmanager_secret.db_credentials.arn
+}
+
+output "rds_kms_key_id" {
+  description = "KMS key ID for RDS encryption"
+  value       = aws_kms_key.rds.key_id
+}
+
+output "rds_kms_key_arn" {
+  description = "KMS key ARN for RDS encryption"
+  value       = aws_kms_key.rds.arn
+}# ElastiC
+ache Redis Outputs
+output "redis_replication_group_id" {
+  description = "Redis replication group ID"
+  value       = aws_elasticache_replication_group.main.id
+}
+
+output "redis_replication_group_arn" {
+  description = "Redis replication group ARN"
+  value       = aws_elasticache_replication_group.main.arn
+}
+
+output "redis_primary_endpoint_address" {
+  description = "Redis primary endpoint address"
+  value       = aws_elasticache_replication_group.main.primary_endpoint_address
+}
+
+output "redis_reader_endpoint_address" {
+  description = "Redis reader endpoint address"
+  value       = aws_elasticache_replication_group.main.reader_endpoint_address
+}
+
+output "redis_port" {
+  description = "Redis port"
+  value       = aws_elasticache_replication_group.main.port
+}
+
+output "redis_secrets_manager_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing Redis credentials"
+  value       = aws_secretsmanager_secret.redis_credentials.arn
+}
+
+output "redis_kms_key_id" {
+  description = "KMS key ID for Redis encryption"
+  value       = aws_kms_key.elasticache.key_id
+}
+
+output "redis_kms_key_arn" {
+  description = "KMS key ARN for Redis encryption"
+  value       = aws_kms_key.elasticache.arn
 }

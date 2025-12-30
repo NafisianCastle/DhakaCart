@@ -1,0 +1,13 @@
+{
+  "database-url": {
+    "ENV": "DATABASE_URL"
+  },
+  "migrations-dir": "migrations",
+  "migrations-table": "pgmigrations",
+  "schema": "public",
+  "dir": "migrations",
+  "check-order": true,
+  "verbose": true,
+  "create-schema": true,
+  "create-migrations-schema": true
+}

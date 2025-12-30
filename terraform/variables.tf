@@ -148,3 +148,124 @@ variable "github_repository" {
   type        = string
   default     = "your-org/dhakacart"
 }
+# RDS Dat
+abase Variables
+variable "db_name" {
+  description = "Name of the database"
+  type        = string
+  default     = "dhakacart"
+}
+
+variable "db_username" {
+  description = "Username for the database"
+  type        = string
+  default     = "dhakacart_admin"
+}
+
+variable "db_engine_version" {
+  description = "PostgreSQL engine version"
+  type        = string
+  default     = "15.4"
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Initial allocated storage in GB"
+  type        = number
+  default     = 20
+}
+
+variable "db_max_allocated_storage" {
+  description = "Maximum allocated storage in GB for autoscaling"
+  type        = number
+  default     = 100
+}
+
+variable "db_multi_az" {
+  description = "Enable Multi-AZ deployment"
+  type        = bool
+  default     = true
+}
+
+variable "db_backup_retention_period" {
+  description = "Backup retention period in days"
+  type        = number
+  default     = 30
+}
+
+variable "db_backup_window" {
+  description = "Backup window (UTC)"
+  type        = string
+  default     = "03:00-04:00"
+}
+
+variable "db_maintenance_window" {
+  description = "Maintenance window (UTC)"
+  type        = string
+  default     = "sun:04:00-sun:05:00"
+}
+
+variable "create_read_replica" {
+  description = "Create read replica for production"
+  type        = bool
+  default     = false
+}
+
+variable "db_replica_instance_class" {
+  description = "RDS read replica instance class"
+  type        = string
+  default     = "db.t3.micro"
+}#
+ ElastiCache Redis Variables
+variable "redis_node_type" {
+  description = "ElastiCache Redis node type"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+variable "redis_engine_version" {
+  description = "Redis engine version"
+  type        = string
+  default     = "7.0"
+}
+
+variable "redis_num_cache_nodes" {
+  description = "Number of cache nodes in the Redis cluster"
+  type        = number
+  default     = 2
+}
+
+variable "redis_multi_az" {
+  description = "Enable Multi-AZ for Redis cluster"
+  type        = bool
+  default     = true
+}
+
+variable "redis_automatic_failover" {
+  description = "Enable automatic failover for Redis cluster"
+  type        = bool
+  default     = true
+}
+
+variable "redis_snapshot_retention_limit" {
+  description = "Number of days to retain Redis snapshots"
+  type        = number
+  default     = 7
+}
+
+variable "redis_snapshot_window" {
+  description = "Daily time range for Redis snapshots (UTC)"
+  type        = string
+  default     = "05:00-06:00"
+}
+
+variable "redis_maintenance_window" {
+  description = "Weekly time range for Redis maintenance (UTC)"
+  type        = string
+  default     = "sun:06:00-sun:07:00"
+}

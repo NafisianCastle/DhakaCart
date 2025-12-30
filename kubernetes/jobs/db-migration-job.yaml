@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dhakacart-db-migration
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: database
+    job-type: migration
+spec:
+  template:
+    metadata:
+      labels:
+        app: dhakacart
+        component: database
+        job-type: migration
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: db-migration
+        image: dhakacart/backend:latest
+        command: ["/bin/bash"]
+        args: ["/scripts/migrate.sh"]
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: database-url
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: host
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: port
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: dbname
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: password
+        - name: SEED_DATABASE
+          value: "true"
+        - name: FRESH_INSTALL
+          value: "false"
+        volumeMounts:
+        - name: db-scripts
+          mountPath: /scripts
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: db-scripts
+        configMap:
+          name: dhakacart-db-scripts
+          defaultMode: 0755
+  backoffLimit: 3
+  activeDeadlineSeconds: 600

@@ -1,0 +1,193 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dhakacart-backend
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: backend
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: dhakacart
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: dhakacart
+        component: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: dhakacart-backend
+      initContainers:
+      - name: db-migration
+        image: dhakacart/backend:latest
+        command: ["/bin/bash"]
+        args: ["/scripts/init-db.sh"]
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: database-url
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: host
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: port
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: dbname
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: password
+        - name: FRESH_INSTALL
+          value: "false"
+        volumeMounts:
+        - name: db-scripts
+          mountPath: /scripts
+          readOnly: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      containers:
+      - name: backend
+        image: dhakacart/backend:latest
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: database-url
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: host
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: port
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: dbname
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-db-credentials
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-redis-credentials
+              key: host
+        - name: REDIS_PORT
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-redis-credentials
+              key: port
+        - name: REDIS_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: dhakacart-redis-credentials
+              key: auth_token
+        - name: REDIS_TLS
+          value: "true"
+        - name: DB_POOL_MAX
+          value: "20"
+        - name: DB_IDLE_TIMEOUT
+          value: "30000"
+        - name: DB_CONNECTION_TIMEOUT
+          value: "5000"
+        - name: MEMORY_LIMIT_MB
+          value: "512"
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /live
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: db-scripts
+        configMap:
+          name: dhakacart-db-scripts
+          defaultMode: 0755
+      securityContext:
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 30

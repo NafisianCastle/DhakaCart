@@ -1,9 +1,9 @@
 const logger = require('./logger');
 
 class HealthChecker {
-    constructor(pool, redisClient = null) {
+    constructor(pool, redisPool = null) {
         this.pool = pool;
-        this.redisClient = redisClient;
+        this.redisPool = redisPool;
         this.startTime = Date.now();
         this.isShuttingDown = false;
     }
@@ -50,66 +50,15 @@ class HealthChecker {
     }
 
     async checkRedis() {
-        if (!this.redisClient) {
+        if (!this.redisPool) {
             return {
                 status: 'not_configured',
-                message: 'Redis client not configured'
+                message: 'Redis connection pool not configured'
             };
         }
 
-        const startTime = Date.now();
-        try {
-            const testKey = `health_check_${Date.now()}`;
-            const testValue = 'ok';
-
-            // Test write
-            await this.redisClient.set(testKey, testValue, { EX: 10 });
-
-            // Test read
-            const result = await this.redisClient.get(testKey);
-
-            // Cleanup
-            await this.redisClient.del(testKey);
-
-            const responseTime = Date.now() - startTime;
-
-            if (result === testValue) {
-                return {
-                    status: 'healthy',
-                    responseTime,
-                    details: {
-                        operation: 'set/get/del',
-                        connected: this.redisClient.isReady
-                    }
-                };
-            } else {
-                return {
-                    status: 'unhealthy',
-                    responseTime,
-                    error: 'Redis read/write test failed',
-                    details: {
-                        expected: testValue,
-                        received: result,
-                        connected: this.redisClient.isReady
-                    }
-                };
-            }
-        } catch (error) {
-            const responseTime = Date.now() - startTime;
-            logger.error('Redis health check failed', {
-                error: error.message,
-                responseTime
-            });
-
-            return {
-                status: 'unhealthy',
-                responseTime,
-                error: error.message,
-                details: {
-                    connected: this.redisClient?.isReady || false
-                }
-            };
-        }
+        // Use the built-in health check method from Redis connection pool
+        return await this.redisPool.healthCheck();
     }
 
     async checkMemory() {
