@@ -251,13 +251,18 @@
   - Implement network policies for pod-to-pod communication restrictions
   - _Requirements: 4.1, 4.3_
 
-- [ ] 8. Create backup and disaster recovery system
+- [-] 8. Create backup and disaster recovery system
+
+
+
   - Implement automated database backup strategies
   - Create disaster recovery procedures and testing scripts
   - Set up cross-region replication for critical data
   - _Requirements: 5.1, 5.2, 5.4, 5.5_
 
 - [ ] 8.1 Implement automated backup system
+
+
   - Configure RDS automated backups with extended retention
   - Create Lambda functions for custom backup scheduling and management
   - Implement backup verification and restoration testing scripts

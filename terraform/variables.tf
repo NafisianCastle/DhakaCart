@@ -269,3 +269,10 @@ variable "redis_maintenance_window" {
   type        = string
   default     = "sun:06:00-sun:07:00"
 }
+
+# Backup Variables
+variable "backup_retention_days" {
+  description = "Number of days to retain manual backups in S3"
+  type        = number
+  default     = 90
+}
