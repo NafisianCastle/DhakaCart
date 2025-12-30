@@ -1,5 +1,5 @@
 const express = require('express');
-const { PaymentController, paymentLimiter, webhookLimiter } = require('../controllers/paymentController');
+const { PaymentController, paymentLimiter, webhookLimiter, authLimiter } = require('../controllers/paymentController');
 const { authenticateToken, requireAdmin, requireCustomerOrAdmin } = require('../auth/middleware');
 const {
     validate,
@@ -29,6 +29,7 @@ router.post('/webhook',
 );
 
 // All other routes require authentication
+router.use(authLimiter);
 router.use(authenticateToken);
 
 // Customer and admin routes
