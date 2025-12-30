@@ -1,126 +1,72 @@
-import React, { useEffect, useState } from 'react';
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import logger from './logger';
-import apiClient from './api';
+
+// Layout Components
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+
+// Pages
+import HomePage from './pages/HomePage';
+
+// Placeholder components for routes (to be implemented in later subtasks)
+const ProductsPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Products Page - Coming Soon</h1></div>;
+const CategoriesPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Categories Page - Coming Soon</h1></div>;
+const AboutPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">About Page - Coming Soon</h1></div>;
+const ContactPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Contact Page - Coming Soon</h1></div>;
+const LoginPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Login Page - Coming Soon</h1></div>;
+const RegisterPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Register Page - Coming Soon</h1></div>;
+const CartPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Cart Page - Coming Soon</h1></div>;
+const AccountPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Account Page - Coming Soon</h1></div>;
 
 function App() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [cartItemCount, setCartItemCount] = useState(0);
 
   useEffect(() => {
-    logger.info('App component mounted', {
+    logger.info('DhakaCart E-commerce App initialized', {
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent
     });
 
-    // Load products on component mount
-    loadProducts();
+    // TODO: Load user session and cart data from localStorage or API
+    // This will be implemented in the authentication subtask
   }, []);
 
-  const loadProducts = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      logger.info('Loading products');
-      const response = await apiClient.get('/products');
-
-      setProducts(response.data.data || []);
-
-      logger.info('Products loaded successfully', {
-        productCount: response.data.count,
-        correlationId: response.correlationId
-      });
-    } catch (err) {
-      const errorMessage = 'Failed to load products';
-      setError(errorMessage);
-
-      logger.error(errorMessage, {
-        error: err.message,
-        stack: err.stack
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = () => {
-    logger.info('User requested products refresh');
-    loadProducts();
+  const handleSearch = (query) => {
+    logger.info('Search initiated', { query });
+    // TODO: Implement search functionality
+    // This will redirect to products page with search parameters
   };
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <h1>DhakaCart</h1>
+    <Router>
+      <div className="App min-h-screen flex flex-col">
+        <Header
+          cartItemCount={cartItemCount}
+          user={user}
+          onSearch={handleSearch}
+        />
 
-        <div style={{ margin: '20px 0' }}>
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              backgroundColor: '#61dafb',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Loading...' : 'Load Products'}
-          </button>
-        </div>
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/account" element={<AccountPage />} />
+          </Routes>
+        </main>
 
-        {error && (
-          <div style={{
-            color: '#ff6b6b',
-            margin: '10px 0',
-            padding: '10px',
-            border: '1px solid #ff6b6b',
-            borderRadius: '5px',
-            backgroundColor: 'rgba(255, 107, 107, 0.1)'
-          }}>
-            Error: {error}
-          </div>
-        )}
-
-        {products.length > 0 && (
-          <div style={{ margin: '20px 0' }}>
-            <h2>Products ({products.length})</h2>
-            <div style={{
-              display: 'grid',
-              gap: '10px',
-              maxWidth: '600px',
-              textAlign: 'left'
-            }}>
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  style={{
-                    padding: '10px',
-                    border: '1px solid #ccc',
-                    borderRadius: '5px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                  }}
-                >
-                  <strong>{product.name}</strong> - ${product.price}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <p style={{ fontSize: '14px', opacity: 0.7 }}>
-          Session ID: {logger.sessionId}
-        </p>
-      </header>
-    </div>
+        <Footer />
+      </div>
+    </Router>
   );
 }
-
-export default App;
 
 export default App;
