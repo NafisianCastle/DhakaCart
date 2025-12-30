@@ -9,16 +9,22 @@ import Footer from './components/layout/Footer';
 
 // Pages
 import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import AccountPage from './pages/AccountPage';
+import ProductsPage from './pages/ProductsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import CategoriesPage from './pages/CategoriesPage';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrderSuccessPage from './pages/OrderSuccessPage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
+import WishlistPage from './pages/WishlistPage';
+import AddressBookPage from './pages/AddressBookPage';
 
 // Placeholder components for routes (to be implemented in later subtasks)
-const ProductsPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Products Page - Coming Soon</h1></div>;
-const CategoriesPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Categories Page - Coming Soon</h1></div>;
-const AboutPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">About Page - Coming Soon</h1></div>;
-const ContactPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Contact Page - Coming Soon</h1></div>;
-const LoginPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Login Page - Coming Soon</h1></div>;
-const RegisterPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Register Page - Coming Soon</h1></div>;
-const CartPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Cart Page - Coming Soon</h1></div>;
-const AccountPage = () => <div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl">Account Page - Coming Soon</h1></div>;
+const AboutPage = () => <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h1 style={{ fontSize: '1.5rem' }}>About Page - Coming Soon</h1></div>;
+const ContactPage = () => <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h1 style={{ fontSize: '1.5rem' }}>Contact Page - Coming Soon</h1></div>;
 
 function App() {
   const [user, setUser] = useState(null);
@@ -30,35 +36,98 @@ function App() {
       userAgent: navigator.userAgent
     });
 
-    // TODO: Load user session and cart data from localStorage or API
-    // This will be implemented in the authentication subtask
+    // Load user session from localStorage
+    loadUserSession();
+
+    // Load cart data from localStorage
+    loadCartData();
   }, []);
+
+  const loadUserSession = () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('user');
+
+      if (token && userData) {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        logger.info('User session restored', { userId: parsedUser.id });
+      }
+    } catch (error) {
+      logger.error('Failed to restore user session', { error: error.message });
+      // Clear invalid data
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+    }
+  };
+
+  const loadCartData = () => {
+    try {
+      const cartData = localStorage.getItem('cart');
+      if (cartData) {
+        const cart = JSON.parse(cartData);
+        const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
+        setCartItemCount(itemCount);
+      }
+    } catch (error) {
+      logger.error('Failed to load cart data', { error: error.message });
+    }
+  };
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    logger.info('User logged in', { userId: userData.id });
+  };
+
+  const handleRegister = (userData) => {
+    setUser(userData);
+    logger.info('User registered', { userId: userData.id });
+  };
 
   const handleSearch = (query) => {
     logger.info('Search initiated', { query });
-    // TODO: Implement search functionality
-    // This will redirect to products page with search parameters
+    // Redirect to products page with search parameter
+    window.location.href = `/products?search=${encodeURIComponent(query)}`;
+  };
+
+  const updateCartCount = (count) => {
+    setCartItemCount(count);
   };
 
   return (
     <Router>
-      <div className="App min-h-screen flex flex-col">
+      <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header
           cartItemCount={cartItemCount}
           user={user}
           onSearch={handleSearch}
         />
 
-        <main className="flex-grow">
+        <main style={{ flexGrow: 1 }}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage updateCartCount={updateCartCount} />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/cart" element={<CartPage />} />
+            <Route
+              path="/login"
+              element={<LoginPage onLogin={handleLogin} />}
+            />
+            <Route
+              path="/register"
+              element={<RegisterPage onRegister={handleRegister} />}
+            />
+            <Route
+              path="/cart"
+              element={<CartPage updateCartCount={updateCartCount} />}
+            />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order-success" element={<OrderSuccessPage />} />
+            <Route path="/orders" element={<OrderHistoryPage />} />
+            <Route path="/wishlist" element={<WishlistPage updateCartCount={updateCartCount} />} />
+            <Route path="/addresses" element={<AddressBookPage />} />
             <Route path="/account" element={<AccountPage />} />
           </Routes>
         </main>
