@@ -16,6 +16,7 @@ const { router: cartRoutes, initializeController: initializeCartController } = r
 const { router: paymentRoutes, initializeController: initializePaymentController } = require('./routes/payments');
 const { router: adminRoutes, initializeController: initializeAdminController } = require('./routes/admin');
 const { router: emailRoutes, initializeController: initializeEmailController } = require('./routes/email');
+const { router: reviewRoutes, initializeController: initializeReviewController } = require('./routes/reviews');
 require("dotenv").config();
 
 const app = express();
@@ -63,27 +64,10 @@ let emailSchedulerService = null;
     initializePaymentController(dbPool, redisPool, webSocketService, emailService);
     initializeAdminController(dbPool, redisPool, webSocketService, emailService);
     initializeEmailController(dbPool, redisPool, webSocketService, emailService);
+    initializeReviewController(dbPool, redisPool, webSocketService, emailService);
   } catch (error) {
     logger.error('Failed to initialize database connection pool', { error: error.message });
     process.exit(1);
-  }
-})();
-
-// Redis connection pool initialization
-const redisPool = new RedisConnectionPool();
-let redisClient = null;
-
-// Initialize Redis connection
-(async () => {
-  try {
-    redisClient = await redisPool.initialize();
-    if (redisClient) {
-      logger.info('Redis connection pool initialized successfully');
-    } else {
-      logger.info('Redis not configured or initialization failed, continuing without Redis');
-    }
-  } catch (error) {
-    logger.error('Failed to initialize Redis connection pool', { error: error.message });
   }
 })();
 
@@ -305,6 +289,9 @@ app.use('/api/admin', adminRoutes);
 
 // Mount email routes
 app.use('/api/email', emailRoutes);
+
+// Mount review routes
+app.use('/api/reviews', reviewRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorLoggingMiddleware);
