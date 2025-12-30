@@ -167,7 +167,7 @@ jobs:
         kubectl get service dhakacart-service -n dhakacart -o jsonpath='{.spec.selector.version}' || echo "No version selector found"
 
     - name: Create rollback incident report
-      uses: actions/github-script@v6
+      uses: actions/github-script@v8
       with:
         script: |
           const title = `Rollback Executed - ${{ github.event.inputs.environment }} - ${new Date().toISOString()}`;
