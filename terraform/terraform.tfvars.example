@@ -1,0 +1,34 @@
+# AWS Configuration
+aws_region = "us-west-2"
+environment = "dev"
+project_name = "dhakacart"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+private_app_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
+private_db_subnet_cidrs = ["10.0.100.0/24", "10.0.200.0/24"]
+
+# NAT Gateway Configuration
+enable_nat_gateway = true
+single_nat_gateway = false  # Set to true for cost optimization in dev
+
+# EKS Configuration
+kubernetes_version = "1.28"
+cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Restrict this in production
+
+# Node Group Configuration
+node_instance_types = ["t3.medium", "t3.large"]
+node_ami_type = "AL2_x86_64"
+node_capacity_type = "ON_DEMAND"  # Use "SPOT" for cost optimization
+node_disk_size = 50
+node_desired_size = 3
+node_max_size = 10
+node_min_size = 1
+node_ssh_key_name = null  # Set to your EC2 key pair name if needed
+
+# Fargate Configuration
+enable_fargate = false
+
+# GitHub Repository for CI/CD
+github_repository = "your-org/dhakacart"  # Replace with your actual repository
