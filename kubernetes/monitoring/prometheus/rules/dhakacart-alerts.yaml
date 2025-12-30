@@ -1,0 +1,167 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: dhakacart-alerts
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    release: prometheus
+spec:
+  groups:
+  - name: dhakacart.application
+    rules:
+    - alert: DhakaCartHighErrorRate
+      expr: |
+        (
+          rate(http_requests_total{job="dhakacart-backend",status=~"5.."}[5m]) /
+          rate(http_requests_total{job="dhakacart-backend"}[5m])
+        ) * 100 > 5
+      for: 2m
+      labels:
+        severity: critical
+        service: dhakacart-backend
+      annotations:
+        summary: "DhakaCart backend has high error rate"
+        description: "DhakaCart backend error rate is {{ $value }}% which is above the 5% threshold"
+        runbook_url: "https://runbooks.dhakacart.com/high-error-rate"
+
+    - alert: DhakaCartHighResponseTime
+      expr: |
+        histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="dhakacart-backend"}[5m])) > 2
+      for: 5m
+      labels:
+        severity: warning
+        service: dhakacart-backend
+      annotations:
+        summary: "DhakaCart backend has high response time"
+        description: "DhakaCart backend 95th percentile response time is {{ $value }}s which is above 2s threshold"
+        runbook_url: "https://runbooks.dhakacart.com/high-response-time"
+
+    - alert: DhakaCartPodCrashLooping
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace="dhakacart"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        service: dhakacart
+      annotations:
+        summary: "DhakaCart pod is crash looping"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is crash looping"
+        runbook_url: "https://runbooks.dhakacart.com/pod-crash-loop"
+
+    - alert: DhakaCartDatabaseConnectionHigh
+      expr: |
+        pg_stat_database_numbackends{job="dhakacart-backend"} > 80
+      for: 5m
+      labels:
+        severity: warning
+        service: dhakacart-database
+      annotations:
+        summary: "DhakaCart database has high connection count"
+        description: "Database connection count is {{ $value }} which is above 80 threshold"
+        runbook_url: "https://runbooks.dhakacart.com/high-db-connections"
+
+    - alert: DhakaCartRedisCacheHitRateLow
+      expr: |
+        (
+          rate(redis_keyspace_hits_total{job="dhakacart-backend"}[5m]) /
+          (rate(redis_keyspace_hits_total{job="dhakacart-backend"}[5m]) + rate(redis_keyspace_misses_total{job="dhakacart-backend"}[5m]))
+        ) * 100 < 80
+      for: 10m
+      labels:
+        severity: warning
+        service: dhakacart-cache
+      annotations:
+        summary: "DhakaCart Redis cache hit rate is low"
+        description: "Redis cache hit rate is {{ $value }}% which is below 80% threshold"
+        runbook_url: "https://runbooks.dhakacart.com/low-cache-hit-rate"
+
+  - name: dhakacart.business
+    rules:
+    - alert: DhakaCartOrderRateDropped
+      expr: |
+        (
+          rate(dhakacart_orders_total[1h]) < 
+          (rate(dhakacart_orders_total[24h] offset 24h) * 0.5)
+        )
+      for: 15m
+      labels:
+        severity: warning
+        service: dhakacart-business
+      annotations:
+        summary: "DhakaCart order rate has dropped significantly"
+        description: "Current order rate is 50% below the same time yesterday"
+        runbook_url: "https://runbooks.dhakacart.com/low-order-rate"
+
+    - alert: DhakaCartHighCartAbandonmentRate
+      expr: |
+        (
+          (increase(dhakacart_carts_created_total[1h]) - increase(dhakacart_orders_total[1h])) /
+          increase(dhakacart_carts_created_total[1h])
+        ) * 100 > 80
+      for: 30m
+      labels:
+        severity: warning
+        service: dhakacart-business
+      annotations:
+        summary: "DhakaCart cart abandonment rate is high"
+        description: "Cart abandonment rate is {{ $value }}% which is above 80% threshold"
+        runbook_url: "https://runbooks.dhakacart.com/high-abandonment-rate"
+
+    - alert: DhakaCartPaymentFailureRateHigh
+      expr: |
+        (
+          rate(dhakacart_payments_failed_total[5m]) /
+          rate(dhakacart_payments_attempted_total[5m])
+        ) * 100 > 10
+      for: 5m
+      labels:
+        severity: critical
+        service: dhakacart-payments
+      annotations:
+        summary: "DhakaCart payment failure rate is high"
+        description: "Payment failure rate is {{ $value }}% which is above 10% threshold"
+        runbook_url: "https://runbooks.dhakacart.com/high-payment-failures"
+
+  - name: dhakacart.infrastructure
+    rules:
+    - alert: DhakaCartPodMemoryUsageHigh
+      expr: |
+        (
+          container_memory_usage_bytes{namespace="dhakacart",container!="POD",container!=""} /
+          container_spec_memory_limit_bytes{namespace="dhakacart",container!="POD",container!=""}
+        ) * 100 > 90
+      for: 5m
+      labels:
+        severity: warning
+        service: dhakacart-infrastructure
+      annotations:
+        summary: "DhakaCart pod memory usage is high"
+        description: "Pod {{ $labels.pod }} memory usage is {{ $value }}% which is above 90% threshold"
+        runbook_url: "https://runbooks.dhakacart.com/high-memory-usage"
+
+    - alert: DhakaCartPodCPUUsageHigh
+      expr: |
+        (
+          rate(container_cpu_usage_seconds_total{namespace="dhakacart",container!="POD",container!=""}[5m]) * 100
+        ) > 90
+      for: 10m
+      labels:
+        severity: warning
+        service: dhakacart-infrastructure
+      annotations:
+        summary: "DhakaCart pod CPU usage is high"
+        description: "Pod {{ $labels.pod }} CPU usage is {{ $value }}% which is above 90% threshold"
+        runbook_url: "https://runbooks.dhakacart.com/high-cpu-usage"
+
+    - alert: DhakaCartPodNotReady
+      expr: |
+        kube_pod_status_ready{namespace="dhakacart",condition="false"} == 1
+      for: 5m
+      labels:
+        severity: critical
+        service: dhakacart-infrastructure
+      annotations:
+        summary: "DhakaCart pod is not ready"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is not ready"
+        runbook_url: "https://runbooks.dhakacart.com/pod-not-ready"

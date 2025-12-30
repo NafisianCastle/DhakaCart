@@ -1,0 +1,188 @@
+# Kibana Helm Values for DhakaCart
+# This configures Kibana for log visualization and analysis
+
+# Replica configuration
+replicas: 2
+
+# Image configuration
+image: "docker.elastic.co/kibana/kibana"
+imageTag: "8.11.0"
+imagePullPolicy: "IfNotPresent"
+
+# Elasticsearch configuration
+elasticsearchHosts: "http://dhakacart-elasticsearch-master:9200"
+
+# Resource configuration
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+# Kibana configuration
+kibanaConfig:
+  kibana.yml: |
+    # Server configuration
+    server.name: dhakacart-kibana
+    server.host: "0.0.0.0"
+    server.port: 5601
+    server.publicBaseUrl: "http://kibana.dhakacart.local"
+    
+    # Elasticsearch configuration
+    elasticsearch.hosts: ["http://dhakacart-elasticsearch-master:9200"]
+    elasticsearch.pingTimeout: 1500
+    elasticsearch.requestTimeout: 30000
+    elasticsearch.shardTimeout: 30000
+    
+    # Security configuration
+    xpack.security.enabled: false
+    xpack.encryptedSavedObjects.encryptionKey: "dhakacart-kibana-encryption-key-32-chars"
+    
+    # Monitoring
+    monitoring.ui.container.elasticsearch.enabled: true
+    
+    # Logging
+    logging.appenders:
+      file:
+        type: file
+        fileName: /usr/share/kibana/logs/kibana.log
+        layout:
+          type: json
+    logging.root:
+      appenders:
+        - default
+        - file
+      level: info
+    
+    # Performance settings
+    server.maxPayload: 1048576
+    elasticsearch.maxSockets: 1024
+    elasticsearch.keepAlive: true
+    
+    # Default index pattern
+    kibana.defaultAppId: "discover"
+    
+    # Saved objects
+    savedObjects.maxImportPayloadBytes: 26214400
+
+# Service configuration
+service:
+  type: LoadBalancer
+  loadBalancerIP: ""
+  port: 5601
+  nodePort: ""
+  labels: {}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+  loadBalancerSourceRanges: []
+  httpPortName: http
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  pathtype: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: kibana.dhakacart.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kibana-tls
+      hosts:
+        - kibana.dhakacart.local
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Health checks
+healthCheckPath: "/app/kibana"
+
+# Readiness probe
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 3
+  timeoutSeconds: 5
+
+# Lifecycle hooks
+lifecycle: {}
+
+# Node affinity
+nodeAffinity: {}
+
+# Pod affinity
+podAffinity: {}
+
+# Pod anti-affinity
+podAntiAffinity:
+  preferredDuringSchedulingIgnoredDuringExecution:
+  - weight: 100
+    podAffinityTerm:
+      labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - kibana
+      topologyKey: kubernetes.io/hostname
+
+# Tolerations
+tolerations: []
+
+# Node selector
+nodeSelector: {}
+
+# Priority class
+priorityClassName: ""
+
+# Annotations
+podAnnotations: {}
+
+# Labels
+labels: {}
+
+# Environment variables
+extraEnvs: []
+
+# Extra volumes
+extraVolumes: []
+
+# Extra volume mounts
+extraVolumeMounts: []
+
+# Init containers
+extraInitContainers: []
+
+# Extra containers
+extraContainers: []
+
+# Image pull secrets
+imagePullSecrets: []
+
+# Persistence (for saved objects and configuration)
+persistence:
+  enabled: false
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80

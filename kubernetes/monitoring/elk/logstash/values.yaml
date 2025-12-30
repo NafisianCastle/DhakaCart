@@ -1,0 +1,309 @@
+# Logstash Helm Values for DhakaCart
+# This configures Logstash for log processing and enrichment
+
+# Replica configuration
+replicas: 2
+
+# Image configuration
+image: "docker.elastic.co/logstash/logstash"
+imageTag: "8.11.0"
+imagePullPolicy: "IfNotPresent"
+
+# Resource configuration
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+# JVM heap size
+logstashJavaOpts: "-Xmx1g -Xms1g"
+
+# Pipeline configuration
+logstashPipeline:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+      
+      # HTTP input for application logs
+      http {
+        port => 8080
+        codec => json
+      }
+    }
+    
+    filter {
+      # Parse timestamp
+      if [fields][log_type] == "application" {
+        date {
+          match => [ "timestamp", "ISO8601" ]
+        }
+        
+        # Parse JSON logs
+        if [message] =~ /^\{.*\}$/ {
+          json {
+            source => "message"
+          }
+        }
+        
+        # Add environment information
+        mutate {
+          add_field => { "environment" => "production" }
+          add_field => { "application" => "dhakacart" }
+        }
+        
+        # Parse log level
+        if [level] {
+          mutate {
+            uppercase => [ "level" ]
+          }
+        }
+        
+        # Extract user ID from logs
+        if [userId] {
+          mutate {
+            add_field => { "user_id" => "%{userId}" }
+          }
+        }
+        
+        # Extract request ID for correlation
+        if [requestId] {
+          mutate {
+            add_field => { "request_id" => "%{requestId}" }
+          }
+        }
+      }
+      
+      # Parse Kubernetes logs
+      if [kubernetes] {
+        # Extract pod information
+        mutate {
+          add_field => { "k8s_namespace" => "%{[kubernetes][namespace]}" }
+          add_field => { "k8s_pod" => "%{[kubernetes][pod][name]}" }
+          add_field => { "k8s_container" => "%{[kubernetes][container][name]}" }
+        }
+        
+        # Parse container logs
+        if [k8s_container] == "dhakacart-backend" {
+          mutate {
+            add_field => { "service" => "backend" }
+          }
+        } else if [k8s_container] == "dhakacart-frontend" {
+          mutate {
+            add_field => { "service" => "frontend" }
+          }
+        }
+      }
+      
+      # Parse nginx access logs
+      if [fields][log_type] == "nginx" {
+        grok {
+          match => { 
+            "message" => "%{COMBINEDAPACHELOG}" 
+          }
+        }
+        
+        # Parse response time
+        if [response_time] {
+          mutate {
+            convert => { "response_time" => "float" }
+          }
+        }
+        
+        # Categorize HTTP status codes
+        if [response] {
+          if [response] >= 200 and [response] < 300 {
+            mutate { add_field => { "status_category" => "success" } }
+          } else if [response] >= 300 and [response] < 400 {
+            mutate { add_field => { "status_category" => "redirect" } }
+          } else if [response] >= 400 and [response] < 500 {
+            mutate { add_field => { "status_category" => "client_error" } }
+          } else if [response] >= 500 {
+            mutate { add_field => { "status_category" => "server_error" } }
+          }
+        }
+      }
+      
+      # GeoIP enrichment for client IPs
+      if [clientip] {
+        geoip {
+          source => "clientip"
+          target => "geoip"
+        }
+      }
+      
+      # Remove sensitive information
+      mutate {
+        remove_field => [ "password", "token", "authorization", "cookie" ]
+      }
+    }
+    
+    output {
+      elasticsearch {
+        hosts => ["dhakacart-elasticsearch-master:9200"]
+        
+        # Index pattern based on log type and date
+        index => "dhakacart-%{[fields][log_type]:application}-%{+YYYY.MM.dd}"
+        
+        # Document type
+        document_type => "_doc"
+        
+        # Template management
+        manage_template => true
+        template_name => "dhakacart"
+        template_pattern => "dhakacart-*"
+        template => {
+          "index_patterns" => ["dhakacart-*"]
+          "settings" => {
+            "number_of_shards" => 1
+            "number_of_replicas" => 1
+            "index.refresh_interval" => "30s"
+            "index.lifecycle.name" => "dhakacart-policy"
+          }
+          "mappings" => {
+            "properties" => {
+              "@timestamp" => { "type" => "date" }
+              "level" => { "type" => "keyword" }
+              "message" => { "type" => "text" }
+              "service" => { "type" => "keyword" }
+              "environment" => { "type" => "keyword" }
+              "k8s_namespace" => { "type" => "keyword" }
+              "k8s_pod" => { "type" => "keyword" }
+              "k8s_container" => { "type" => "keyword" }
+              "request_id" => { "type" => "keyword" }
+              "user_id" => { "type" => "keyword" }
+              "clientip" => { "type" => "ip" }
+              "response_time" => { "type" => "float" }
+              "status_category" => { "type" => "keyword" }
+            }
+          }
+        }
+      }
+      
+      # Debug output (remove in production)
+      stdout {
+        codec => rubydebug
+      }
+    }
+
+# Service configuration
+service:
+  annotations: {}
+  type: ClusterIP
+  loadBalancerIP: ""
+  ports:
+    - name: beats
+      port: 5044
+      protocol: TCP
+      targetPort: 5044
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+
+# Ingress configuration
+ingress:
+  enabled: false
+
+# Persistence configuration
+persistence:
+  enabled: true
+  annotations: {}
+
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: "gp3"
+  resources:
+    requests:
+      storage: 10Gi
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+
+# Security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Lifecycle hooks
+lifecycle:
+  preStop:
+    exec:
+      command:
+        - /bin/bash
+        - -c
+        - /usr/share/logstash/bin/logstash --path.settings /usr/share/logstash/config --config.test_and_exit
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 300
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Node affinity
+nodeAffinity: {}
+
+# Pod affinity
+podAffinity: {}
+
+# Pod anti-affinity
+podAntiAffinity:
+  preferredDuringSchedulingIgnoredDuringExecution:
+  - weight: 100
+    podAffinityTerm:
+      labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - logstash
+      topologyKey: kubernetes.io/hostname
+
+# Tolerations
+tolerations: []
+
+# Node selector
+nodeSelector: {}
+
+# Priority class
+priorityClassName: ""
+
+# Annotations
+podAnnotations: {}
+
+# Labels
+labels: {}
+
+# Environment variables
+extraEnvs: []
+
+# Extra volumes
+extraVolumes: []
+
+# Extra volume mounts
+extraVolumeMounts: []

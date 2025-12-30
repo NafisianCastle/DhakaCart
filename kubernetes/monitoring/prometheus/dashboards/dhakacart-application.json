@@ -1,0 +1,206 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "DhakaCart Application Metrics",
+        "tags": [
+            "dhakacart",
+            "application"
+        ],
+        "timezone": "browser",
+        "panels": [
+            {
+                "id": 1,
+                "title": "HTTP Request Rate",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(http_requests_total{job=\"dhakacart-backend\"}[5m])",
+                        "legendFormat": "{{method}} {{route}}"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Requests/sec"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                }
+            },
+            {
+                "id": 2,
+                "title": "HTTP Response Time",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"dhakacart-backend\"}[5m]))",
+                        "legendFormat": "95th percentile"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"dhakacart-backend\"}[5m]))",
+                        "legendFormat": "50th percentile"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Seconds"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 0
+                }
+            },
+            {
+                "id": 3,
+                "title": "Error Rate",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(http_requests_total{job=\"dhakacart-backend\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=\"dhakacart-backend\"}[5m]) * 100",
+                        "legendFormat": "Error Rate %"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Percentage",
+                        "max": 100,
+                        "min": 0
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 8
+                }
+            },
+            {
+                "id": 4,
+                "title": "Active Database Connections",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "pg_stat_database_numbackends{job=\"dhakacart-backend\"}",
+                        "legendFormat": "Active Connections"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Connections"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 8
+                }
+            },
+            {
+                "id": 5,
+                "title": "Redis Cache Hit Rate",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(redis_keyspace_hits_total{job=\"dhakacart-backend\"}[5m]) / (rate(redis_keyspace_hits_total{job=\"dhakacart-backend\"}[5m]) + rate(redis_keyspace_misses_total{job=\"dhakacart-backend\"}[5m])) * 100",
+                        "legendFormat": "Cache Hit Rate %"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Percentage",
+                        "max": 100,
+                        "min": 0
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 16
+                }
+            },
+            {
+                "id": 6,
+                "title": "Pod CPU Usage",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(container_cpu_usage_seconds_total{namespace=\"dhakacart\",container!=\"POD\",container!=\"\"}[5m]) * 100",
+                        "legendFormat": "{{pod}} - {{container}}"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "CPU %"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 16
+                }
+            },
+            {
+                "id": 7,
+                "title": "Pod Memory Usage",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "container_memory_usage_bytes{namespace=\"dhakacart\",container!=\"POD\",container!=\"\"} / 1024 / 1024",
+                        "legendFormat": "{{pod}} - {{container}}"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "Memory (MB)"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 24
+                }
+            },
+            {
+                "id": 8,
+                "title": "Network I/O",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(container_network_receive_bytes_total{namespace=\"dhakacart\"}[5m]) / 1024",
+                        "legendFormat": "Receive KB/s"
+                    },
+                    {
+                        "expr": "rate(container_network_transmit_bytes_total{namespace=\"dhakacart\"}[5m]) / 1024",
+                        "legendFormat": "Transmit KB/s"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "label": "KB/s"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 24
+                }
+            }
+        ],
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "refresh": "30s"
+    }
+}

@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dhakacart-backend
+  namespace: dhakacart
+  labels:
+    app: dhakacart-backend
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: dhakacart-backend
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+  - port: http
+    interval: 30s
+    path: /health
+    honorLabels: true
+  namespaceSelector:
+    matchNames:
+    - dhakacart
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dhakacart-frontend
+  namespace: dhakacart
+  labels:
+    app: dhakacart-frontend
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: dhakacart-frontend
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /health
+    honorLabels: true
+  namespaceSelector:
+    matchNames:
+    - dhakacart
