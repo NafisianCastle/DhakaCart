@@ -1,21 +1,98 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: dhakacart-frontend
   namespace: dhakacart
+  labels:
+    app: dhakacart-frontend
+    component: frontend
+    version: v1
 spec:
-  replicas: 2
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
-      app: frontend
+      app: dhakacart-frontend
   template:
     metadata:
       labels:
-        app: frontend
+        app: dhakacart-frontend
+        component: frontend
+        version: v1
+      annotations:
+        prometheus.io/scrape: "false"
     spec:
       containers:
-        - name: frontend
-          image: dhakacart-frontend
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 80
+      - name: frontend
+        image: dhakacart/frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: REACT_APP_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: dhakacart-config
+              key: api-url
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-cache-nginx
+          mountPath: /var/cache/nginx
+        - name: var-run-nginx
+          mountPath: /var/run/nginx
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-cache-nginx
+        emptyDir: {}
+      - name: var-run-nginx
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1001
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

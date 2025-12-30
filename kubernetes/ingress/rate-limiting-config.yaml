@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-rate-limit-config
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+data:
+  # Rate limiting configuration for nginx ingress controller
+  rate-limit-rps: "100"
+  rate-limit-connections: "50"
+  rate-limit-rpm: "6000"
+  
+  # Custom nginx configuration for advanced rate limiting
+  nginx.conf: |
+    # Rate limiting zones
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    limit_req_zone $binary_remote_addr zone=login:10m rate=1r/s;
+    limit_req_zone $binary_remote_addr zone=general:10m rate=100r/s;
+    
+    # Connection limiting
+    limit_conn_zone $binary_remote_addr zone=conn_limit_per_ip:10m;
+    
+    server {
+        # General rate limiting
+        limit_req zone=general burst=20 nodelay;
+        limit_conn conn_limit_per_ip 20;
+        
+        # API specific rate limiting
+        location /api/ {
+            limit_req zone=api burst=5 nodelay;
+            limit_req_status 429;
+            proxy_pass http://dhakacart-backend-service:5000;
+        }
+        
+        # Login endpoint with stricter limits
+        location /api/auth/login {
+            limit_req zone=login burst=2 nodelay;
+            limit_req_status 429;
+            proxy_pass http://dhakacart-backend-service:5000;
+        }
+        
+        # Static content with higher limits
+        location / {
+            limit_req zone=general burst=50 nodelay;
+            proxy_pass http://dhakacart-frontend-service:80;
+        }
+    }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dhakacart-nginx-ingress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+  annotations:
+    # Nginx Ingress Controller annotations (alternative to ALB)
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # Rate limiting annotations
+    nginx.ingress.kubernetes.io/rate-limit-rps: "100"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "50"
+    nginx.ingress.kubernetes.io/rate-limit-rpm: "6000"
+    
+    # Custom rate limiting per location
+    nginx.ingress.kubernetes.io/server-snippet: |
+      limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+      limit_req_zone $binary_remote_addr zone=login:1m rate=1r/s;
+      limit_conn_zone $binary_remote_addr zone=conn_limit_per_ip:10m;
+    
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      limit_req zone=api burst=5 nodelay;
+      limit_conn conn_limit_per_ip 20;
+      limit_req_status 429;
+    
+    # SSL Configuration
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    nginx.ingress.kubernetes.io/ssl-ciphers: "ECDHE-RSA-AES128-GCM-SHA256,ECDHE-RSA-AES256-GCM-SHA384"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/custom-http-errors: "404,503"
+    nginx.ingress.kubernetes.io/default-backend: dhakacart-frontend-service
+spec:
+  tls:
+  - hosts:
+    - dhakacart.com
+    - www.dhakacart.com
+    secretName: dhakacart-tls
+  rules:
+  - host: dhakacart.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-frontend-service
+            port:
+              number: 80
+  - host: www.dhakacart.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-frontend-service
+            port:
+              number: 80

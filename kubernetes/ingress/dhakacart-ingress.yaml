@@ -1,0 +1,115 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dhakacart-ingress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+  annotations:
+    # AWS Load Balancer Controller annotations
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/load-balancer-name: dhakacart-alb
+    
+    # SSL Configuration
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:ACCOUNT-ID:certificate/CERTIFICATE-ID
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    
+    # Health Check Configuration
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    
+    # Load Balancer Configuration
+    alb.ingress.kubernetes.io/load-balancer-attributes: |
+      idle_timeout.timeout_seconds=60,
+      routing.http2.enabled=true,
+      access_logs.s3.enabled=true,
+      access_logs.s3.bucket=dhakacart-alb-logs,
+      access_logs.s3.prefix=dhakacart
+    
+    # Security Groups
+    alb.ingress.kubernetes.io/security-groups: sg-xxxxxxxxx
+    
+    # Subnets (public subnets for internet-facing ALB)
+    alb.ingress.kubernetes.io/subnets: subnet-xxxxxxxxx,subnet-yyyyyyyyy
+    
+    # Tags
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Application=dhakacart,
+      ManagedBy=kubernetes
+spec:
+  rules:
+  - host: dhakacart.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-frontend-service
+            port:
+              number: 80
+  - host: www.dhakacart.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: dhakacart-backend-service
+            port:
+              number: 5000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dhakacart-frontend-service
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - dhakacart.com
+    - www.dhakacart.com

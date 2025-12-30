@@ -1,0 +1,27 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dhakacart-frontend-pdb
+  namespace: dhakacart
+  labels:
+    app: dhakacart-frontend
+    component: frontend
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: dhakacart-frontend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dhakacart-backend-pdb
+  namespace: dhakacart
+  labels:
+    app: dhakacart-backend
+    component: backend
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: dhakacart-backend

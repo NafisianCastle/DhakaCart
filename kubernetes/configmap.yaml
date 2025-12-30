@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dhakacart-config
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+data:
+  api-url: "http://dhakacart-backend-service:5000"
+  environment: "production"
+  log-level: "info"

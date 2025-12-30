@@ -75,25 +75,36 @@
   - Add graceful shutdown handling for SIGTERM signals
   - _Requirements: 1.4, 2.2_
 
-- [ ] 3. Create Kubernetes manifests and deployment configurations
+- [x] 3. Create Kubernetes manifests and deployment configurations
+
+
+
+
+
   - Write Kubernetes deployments, services, and ingress configurations
   - Implement Horizontal Pod Autoscaler (HPA) for auto-scaling
   - Configure resource limits, requests, and quality of service classes
   - _Requirements: 1.1, 1.2, 1.4_
 
-- [ ] 3.1 Create Kubernetes deployment manifests
+- [x] 3.1 Create Kubernetes deployment manifests
+
+
   - Write deployment YAML for frontend with rolling update strategy
   - Create backend deployment with resource limits and health probes
   - Define services for internal communication and load balancing
   - _Requirements: 1.1, 1.4, 2.1_
 
-- [ ] 3.2 Implement auto-scaling configuration
+- [x] 3.2 Implement auto-scaling configuration
+
+
   - Create HPA manifests for CPU and memory-based scaling
   - Configure cluster autoscaler for node-level scaling
   - Set up vertical pod autoscaler for resource optimization
   - _Requirements: 1.2, 1.1_
 
-- [ ] 3.3 Set up ingress and load balancing
+- [x] 3.3 Set up ingress and load balancing
+
+
   - Create ingress controller configuration with AWS Load Balancer Controller
   - Configure SSL termination and certificate management
   - Implement path-based routing and rate limiting at ingress level
