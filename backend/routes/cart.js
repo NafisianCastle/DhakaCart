@@ -19,6 +19,8 @@ const initializeController = (dbPool, redisPool) => {
     cartController = new CartController(dbPool, redisPool);
 };
 
+// Apply rate limiting before authentication/authorization
+router.use(cartLimiter);
 // All cart routes require authentication
 router.use(authenticateToken);
 router.use(requireCustomerOrAdmin);
