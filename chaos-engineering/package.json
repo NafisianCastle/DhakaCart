@@ -21,7 +21,7 @@
     "author": "DhakaCart Team",
     "license": "ISC",
     "dependencies": {
-        "@kubernetes/client-node": "^0.20.0",
+        "@kubernetes/client-node": "^1.4.0",
         "axios": "^1.6.0",
         "dotenv": "^17.2.3",
         "uuid": "^9.0.1",
