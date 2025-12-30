@@ -6,6 +6,11 @@ const { correlationIdMiddleware, requestLoggingMiddleware, errorLoggingMiddlewar
 const HealthChecker = require('./health');
 const RedisConnectionPool = require('./redis');
 const DatabaseConnectionPool = require('./database');
+const { router: authRoutes, initializeController: initializeAuthController } = require('./routes/auth');
+const { router: productRoutes, initializeController: initializeProductController } = require('./routes/products');
+const { router: cartRoutes, initializeController: initializeCartController } = require('./routes/cart');
+const { router: paymentRoutes, initializeController: initializePaymentController } = require('./routes/payments');
+const { router: adminRoutes, initializeController: initializeAdminController } = require('./routes/admin');
 require("dotenv").config();
 
 const app = express();
@@ -24,6 +29,13 @@ let pool = null;
   try {
     pool = await dbPool.initialize();
     logger.info('Database connection pool initialized successfully');
+
+    // Initialize auth controller after database is ready
+    initializeAuthController(dbPool, redisPool);
+    initializeProductController(dbPool, redisPool);
+    initializeCartController(dbPool, redisPool);
+    initializePaymentController(dbPool, redisPool);
+    initializeAdminController(dbPool, redisPool);
   } catch (error) {
     logger.error('Failed to initialize database connection pool', { error: error.message });
     process.exit(1);
@@ -248,6 +260,21 @@ app.get("/products", productsLimiter, async (req, res) => {
     throw err; // Let error middleware handle it
   }
 });
+
+// Mount auth routes
+app.use('/api/auth', authRoutes);
+
+// Mount product routes
+app.use('/api/products', productRoutes);
+
+// Mount cart routes
+app.use('/api/cart', cartRoutes);
+
+// Mount payment routes
+app.use('/api/payments', paymentRoutes);
+
+// Mount admin routes
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorLoggingMiddleware);
