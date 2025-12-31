@@ -18,6 +18,7 @@ const { router: adminRoutes, initializeController: initializeAdminController } =
 const { router: emailRoutes, initializeController: initializeEmailController } = require('./routes/email');
 const { router: reviewRoutes, initializeController: initializeReviewController } = require('./routes/reviews');
 const { router: searchRoutes, initializeSearchRoutes } = require('./routes/search');
+const { router: promotionRoutes, initializeController: initializePromotionController } = require('./routes/promotions');
 require("dotenv").config();
 
 const app = express();
@@ -66,6 +67,7 @@ let emailSchedulerService = null;
     initializeEmailController(dbPool, redisPool, webSocketService, emailService);
     initializeReviewController(dbPool, redisPool, webSocketService, emailService);
     initializeSearchRoutes(dbPool, redisPool);
+    initializePromotionController(dbPool, redisPool, webSocketService, emailService);
   } catch (error) {
     logger.error('Failed to initialize database connection pool', { error: error.message });
     process.exit(1);
@@ -296,6 +298,9 @@ app.use('/api/reviews', reviewRoutes);
 
 // Mount search routes
 app.use('/api/search', searchRoutes);
+
+// Mount promotion routes
+app.use('/api/promotions', promotionRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorLoggingMiddleware);
