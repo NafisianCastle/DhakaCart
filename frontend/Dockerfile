@@ -1,5 +1,5 @@
 # Multi-stage build for production-ready frontend
-FROM node:18-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

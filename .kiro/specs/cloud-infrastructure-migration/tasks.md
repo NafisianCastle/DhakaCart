@@ -410,14 +410,14 @@ This implementation plan transforms DhakaCart from a single-machine Docker Compo
   - Create review analytics and insights for products
   - _Requirements: 1.1, 1.4_
 
-- [ ] 14.4 Implement Search and Recommendation Engine
+- [x] 14.4 Implement Search and Recommendation Engine
   - Add Elasticsearch integration for advanced product search
   - Create personalized product recommendations
   - Implement "customers who bought this also bought" features
   - Add search analytics and popular search terms
   - _Requirements: 1.1, 1.4, 3.1_
 
-- [ ] 14.5 Create Promotional and Discount System
+- [x] 14.5 Create Promotional and Discount System
   - Implement coupon codes and discount management
   - Add promotional banners and featured product sections
   - Create flash sales and limited-time offers

@@ -1,9 +1,10 @@
 const logger = require('../logger');
 
 class ProductService {
-    constructor(dbPool, redisPool) {
+    constructor(dbPool, redisPool, searchService = null) {
         this.db = dbPool;
         this.redis = redisPool;
+        this.searchService = searchService;
         this.cachePrefix = 'product:';
         this.cacheTTL = 300; // 5 minutes
     }
@@ -39,6 +40,11 @@ class ProductService {
 
             // Clear products cache
             await this.clearProductsCache();
+
+            // Index product in Elasticsearch
+            if (this.searchService) {
+                await this.searchService.indexProduct(product.id);
+            }
 
             logger.info('Product created successfully', {
                 productId: product.id,
@@ -341,6 +347,11 @@ class ProductService {
             await this.clearProductCache(productId);
             await this.clearProductsCache();
 
+            // Update product in Elasticsearch
+            if (this.searchService) {
+                await this.searchService.indexProduct(product.id);
+            }
+
             logger.info('Product updated successfully', {
                 productId: product.id,
                 name: product.name
@@ -372,6 +383,11 @@ class ProductService {
             // Clear cache
             await this.clearProductCache(productId);
             await this.clearProductsCache();
+
+            // Remove product from Elasticsearch
+            if (this.searchService) {
+                await this.searchService.removeProduct(product.id);
+            }
 
             logger.info('Product deleted successfully', {
                 productId: product.id,

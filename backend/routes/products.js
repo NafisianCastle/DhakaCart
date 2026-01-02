@@ -29,7 +29,7 @@ router.get('/',
     (req, res) => productController.getProducts(req, res)
 );
 
-router.get('/:id(\\d+)',
+router.get('/:id',
     productLimiter,
     (req, res) => productController.getProductById(req, res)
 );
@@ -48,7 +48,7 @@ router.post('/',
     (req, res) => productController.createProduct(req, res)
 );
 
-router.put('/:id(\\d+)',
+router.put('/:id',
     productLimiter,
     authenticateToken,
     requireAdmin,
@@ -56,14 +56,14 @@ router.put('/:id(\\d+)',
     (req, res) => productController.updateProduct(req, res)
 );
 
-router.delete('/:id(\\d+)',
+router.delete('/:id',
     productLimiter,
     authenticateToken,
     requireAdmin,
     (req, res) => productController.deleteProduct(req, res)
 );
 
-router.patch('/:id(\\d+)/stock',
+router.patch('/:id/stock',
     productLimiter,
     authenticateToken,
     requireAdmin,
@@ -79,7 +79,7 @@ router.get('/categories',
     (req, res) => productController.getCategories(req, res)
 );
 
-router.get('/categories/:id(\\d+)',
+router.get('/categories/:id',
     productLimiter,
     (req, res) => productController.getCategoryById(req, res)
 );
@@ -93,7 +93,7 @@ router.post('/categories',
     (req, res) => productController.createCategory(req, res)
 );
 
-router.put('/categories/:id(\\d+)',
+router.put('/categories/:id',
     productLimiter,
     authenticateToken,
     requireAdmin,
@@ -101,7 +101,7 @@ router.put('/categories/:id(\\d+)',
     (req, res) => productController.updateCategory(req, res)
 );
 
-router.delete('/categories/:id(\\d+)',
+router.delete('/categories/:id',
     productLimiter,
     authenticateToken,
     requireAdmin,

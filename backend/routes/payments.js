@@ -29,7 +29,6 @@ router.post('/webhook',
 );
 
 // All other routes require authentication
-router.use(authLimiter);
 router.use(authenticateToken);
 
 // Customer and admin routes
@@ -54,7 +53,7 @@ router.post('/enhanced-checkout',
     (req, res) => paymentController.enhancedCheckout(req, res)
 );
 
-router.get('/status/:orderId(\\d+)',
+router.get('/status/:orderId',
     paymentLimiter,
     requireCustomerOrAdmin,
     (req, res) => paymentController.getPaymentStatus(req, res)
@@ -68,7 +67,7 @@ router.post('/create-customer',
 );
 
 // Admin-only routes
-router.post('/refund/:orderId(\\d+)',
+router.post('/refund/:orderId',
     paymentLimiter,
     requireAdmin,
     validate(refundPaymentSchema),

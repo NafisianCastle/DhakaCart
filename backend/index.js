@@ -17,6 +17,8 @@ const { router: paymentRoutes, initializeController: initializePaymentController
 const { router: adminRoutes, initializeController: initializeAdminController } = require('./routes/admin');
 const { router: emailRoutes, initializeController: initializeEmailController } = require('./routes/email');
 const { router: reviewRoutes, initializeController: initializeReviewController } = require('./routes/reviews');
+const { router: searchRoutes, initializeSearchRoutes } = require('./routes/search');
+const { router: promotionRoutes, initializeController: initializePromotionController } = require('./routes/promotions');
 require("dotenv").config();
 
 const app = express();
@@ -33,7 +35,6 @@ let pool = null;
 
 // Redis connection pool initialization
 const redisPool = new RedisConnectionPool();
-let redisClient = null;
 
 // WebSocket service initialization
 const webSocketService = new WebSocketService();
@@ -65,6 +66,8 @@ let emailSchedulerService = null;
     initializeAdminController(dbPool, redisPool, webSocketService, emailService);
     initializeEmailController(dbPool, redisPool, webSocketService, emailService);
     initializeReviewController(dbPool, redisPool, webSocketService, emailService);
+    initializeSearchRoutes(dbPool, redisPool);
+    initializePromotionController(dbPool, redisPool, webSocketService, emailService);
   } catch (error) {
     logger.error('Failed to initialize database connection pool', { error: error.message });
     process.exit(1);
@@ -293,10 +296,16 @@ app.use('/api/email', emailRoutes);
 // Mount review routes
 app.use('/api/reviews', reviewRoutes);
 
+// Mount search routes
+app.use('/api/search', searchRoutes);
+
+// Mount promotion routes
+app.use('/api/promotions', promotionRoutes);
+
 // Error handling middleware (must be last)
 app.use(errorLoggingMiddleware);
 
-const server = app.listen(5000, () => {
+const httpServer = app.listen(5000, () => {
   logger.info("Backend server started", {
     port: 5000,
     environment: process.env.NODE_ENV || 'development',
@@ -305,7 +314,7 @@ const server = app.listen(5000, () => {
   });
 
   // Initialize WebSocket service after server starts
-  webSocketService.initialize(server, dbPool, redisPool);
+  webSocketService.initialize(httpServer, dbPool, redisPool);
 });
 
 // Graceful shutdown handling
@@ -323,7 +332,7 @@ const gracefulShutdown = (signal) => {
   healthChecker.setShuttingDown(true);
 
   // Stop accepting new connections
-  server.close((err) => {
+  httpServer.close((err) => {
     if (err) {
       logger.error('Error during server shutdown', { error: err.message });
       process.exit(1);

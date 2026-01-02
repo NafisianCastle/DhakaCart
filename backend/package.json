@@ -42,6 +42,7 @@
     "handlebars": "^4.7.8",
     "mjml": "^4.15.3",
     "html-to-text": "^9.0.5"
+    "@elastic/elasticsearch": "^8.11.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
@@ -51,23 +52,5 @@
     "eslint-plugin-no-secrets": "^0.8.9",
     "nodemon": "^3.0.2",
     "@types/jest": "^29.5.8"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!node_modules/**",
-      "!coverage/**",
-      "!migrations/**"
-    ],
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ],
-    "testMatch": [
-      "**/__tests__/**/*.js",
-      "**/?(*.)+(spec|test).js"
-    ]
   }
 }

@@ -25,14 +25,14 @@ const initializeController = (dbPool, redisPool, webSocketService = null, emailS
 // Public routes (no authentication required)
 
 // Get reviews for a specific product
-router.get('/products/:productId(\\d+)',
+router.get('/products/:productId',
     reviewLimiter,
     validate(reviewQuerySchema),
     (req, res) => reviewController.getProductReviews(req, res)
 );
 
 // Get review statistics for a specific product
-router.get('/products/:productId(\\d+)/stats',
+router.get('/products/:productId/stats',
     reviewLimiter,
     (req, res) => reviewController.getProductReviewStats(req, res)
 );
@@ -40,7 +40,7 @@ router.get('/products/:productId(\\d+)/stats',
 // Protected routes (authentication required)
 
 // Create a review for a product
-router.post('/products/:productId(\\d+)',
+router.post('/products/:productId',
     reviewCreateLimiter,
     authenticateToken,
     requireCustomerOrAdmin,
@@ -49,7 +49,7 @@ router.post('/products/:productId(\\d+)',
 );
 
 // Update a review
-router.put('/:reviewId(\\d+)',
+router.put('/:reviewId',
     reviewLimiter,
     authenticateToken,
     requireCustomerOrAdmin,
@@ -58,7 +58,7 @@ router.put('/:reviewId(\\d+)',
 );
 
 // Delete a review
-router.delete('/:reviewId(\\d+)',
+router.delete('/:reviewId',
     reviewLimiter,
     authenticateToken,
     requireCustomerOrAdmin,
@@ -66,7 +66,7 @@ router.delete('/:reviewId(\\d+)',
 );
 
 // Mark review as helpful/not helpful
-router.post('/:reviewId(\\d+)/helpful',
+router.post('/:reviewId/helpful',
     reviewLimiter,
     authenticateToken,
     requireCustomerOrAdmin,
@@ -75,7 +75,7 @@ router.post('/:reviewId(\\d+)/helpful',
 );
 
 // Report a review
-router.post('/:reviewId(\\d+)/report',
+router.post('/:reviewId/report',
     reviewLimiter,
     authenticateToken,
     requireCustomerOrAdmin,
@@ -104,7 +104,7 @@ router.get('/admin/moderation',
 );
 
 // Moderate a review (approve/reject)
-router.patch('/admin/:reviewId(\\d+)/moderate',
+router.patch('/admin/:reviewId/moderate',
     reviewLimiter,
     authenticateToken,
     requireAdmin,
