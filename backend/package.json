@@ -41,6 +41,7 @@
     "socket.io": "^4.7.5",
     "handlebars": "^4.7.8",
     "mjml": "^4.15.3",
+    "html-to-text": "^9.0.5"
     "@elastic/elasticsearch": "^8.11.0"
   },
   "devDependencies": {

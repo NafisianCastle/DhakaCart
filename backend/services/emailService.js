@@ -4,6 +4,7 @@ const mjml = require('mjml');
 const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../logger');
+const { htmlToText } = require('html-to-text');
 
 class EmailService {
     constructor() {
@@ -365,14 +366,17 @@ class EmailService {
 
     // Convert HTML to plain text for email clients that don't support HTML
     htmlToText(html) {
-        return html
-            .replace(/<[^>]*>/g, '') // Remove HTML tags
-            .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
-            .replace(/&amp;/g, '&') // Replace &amp; with &
-            .replace(/&lt;/g, '<') // Replace &lt; with <
-            .replace(/&gt;/g, '>') // Replace &gt; with >
-            .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-            .trim();
+        if (!html) {
+            return '';
+        }
+
+        // Use a robust library to convert HTML to plain text without reintroducing HTML tags
+        const text = htmlToText(html, {
+            wordwrap: false
+        });
+
+        // Normalize whitespace similarly to the previous implementation
+        return text.replace(/\s+/g, ' ').trim();
     }
 
     // Email workflow methods
