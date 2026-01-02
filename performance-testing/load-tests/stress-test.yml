@@ -1,0 +1,66 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    # Gradual ramp-up to stress levels
+    - duration: 300
+      arrivalRate: 10
+      rampTo: 200
+      name: "Ramp-up to stress level"
+    # Sustained stress
+    - duration: 600
+      arrivalRate: 200
+      name: "Sustained stress load"
+    # Peak stress
+    - duration: 300
+      arrivalRate: 200
+      rampTo: 500
+      name: "Peak stress load"
+    # Extreme stress
+    - duration: 180
+      arrivalRate: 500
+      rampTo: 1000
+      name: "Extreme stress load"
+    # Recovery
+    - duration: 300
+      arrivalRate: 1000
+      rampTo: 10
+      name: "Recovery phase"
+  processor: "./processors/api-processor.js"
+
+scenarios:
+  # Heavy product operations
+  - name: "Heavy Product Load"
+    weight: 60
+    flow:
+      - loop:
+          - get:
+              url: "/api/products"
+          - get:
+              url: "/api/products/{{ $randomInt(1, 100) }}"
+          - post:
+              url: "/api/products"
+              json:
+                name: "Stress Test Product {{ $randomString() }}"
+                price: "{{ $randomNumber(10, 1000) }}"
+                description: "Stress test product"
+                stock_quantity: "{{ $randomInt(1, 100) }}"
+        count: 5
+
+  # Concurrent database operations
+  - name: "Database Stress"
+    weight: 40
+    flow:
+      - loop:
+          - get:
+              url: "/api/products?limit=100"
+          - get:
+              url: "/api/products?search=test&limit=50"
+        count: 10
+
+# Stress test thresholds (more lenient than load test)
+expect:
+  thresholds:
+    - http.response_time.p95: 5000   # 95% under 5s during stress
+    - http.response_time.p99: 10000  # 99% under 10s during stress
+    - http.codes.200: 80             # 80% success rate acceptable under stress
+    - http.codes.5xx: 10             # Max 10% server errors under stress

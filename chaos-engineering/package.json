@@ -1,0 +1,33 @@
+{
+    "name": "dhakacart-chaos-engineering",
+    "version": "1.0.0",
+    "description": "Chaos engineering tests for DhakaCart Kubernetes infrastructure",
+    "main": "index.js",
+    "scripts": {
+        "test:pod-failure": "node experiments/pod-failure-test.js",
+        "test:network-partition": "node experiments/network-partition-test.js",
+        "test:resource-exhaustion": "node experiments/resource-exhaustion-test.js",
+        "test:database-failure": "node experiments/database-failure-test.js",
+        "test:all-chaos": "node run-chaos-experiments.js --all",
+        "test:chaos-ci": "node run-chaos-experiments.js --ci",
+        "validate-resilience": "node validate-resilience.js"
+    },
+    "keywords": [
+        "chaos-engineering",
+        "kubernetes",
+        "resilience",
+        "testing"
+    ],
+    "author": "DhakaCart Team",
+    "license": "ISC",
+    "dependencies": {
+        "@kubernetes/client-node": "^0.20.0",
+        "axios": "^1.6.0",
+        "dotenv": "^17.2.3",
+        "uuid": "^9.0.1",
+        "winston": "^3.11.0"
+    },
+    "devDependencies": {
+        "jest": "^29.7.0"
+    }
+}

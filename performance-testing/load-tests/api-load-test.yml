@@ -1,0 +1,101 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+    # Ramp-up phase
+    - duration: 300
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up to normal load"
+    # Sustained load phase
+    - duration: 600
+      arrivalRate: 50
+      name: "Sustained normal load"
+    # Peak load phase
+    - duration: 300
+      arrivalRate: 50
+      rampTo: 100
+      name: "Peak load simulation"
+    # Cool-down phase
+    - duration: 120
+      arrivalRate: 100
+      rampTo: 10
+      name: "Cool-down"
+  processor: "./processors/api-processor.js"
+  variables:
+    productIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    userIds: [1, 2, 3, 4, 5]
+
+scenarios:
+  # Health check scenario (10% of traffic)
+  - name: "Health Check"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - hasProperty: "status"
+
+  # Get all products scenario (40% of traffic)
+  - name: "Get Products"
+    weight: 40
+    flow:
+      - get:
+          url: "/api/products"
+          expect:
+            - statusCode: 200
+            - contentType: json
+          capture:
+            - json: "$"
+              as: "products"
+      - think: 2
+
+  # Get specific product scenario (30% of traffic)
+  - name: "Get Product Details"
+    weight: 30
+    flow:
+      - get:
+          url: "/api/products/{{ $randomInt(1, 10) }}"
+          expect:
+            - statusCode: [200, 404]
+      - think: 1
+
+  # Create product scenario (15% of traffic)
+  - name: "Create Product"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/products"
+          json:
+            name: "Test Product {{ $randomString() }}"
+            price: "{{ $randomNumber(10, 1000) }}"
+            description: "Performance test product"
+            stock_quantity: "{{ $randomInt(1, 100) }}"
+            category_id: "{{ $randomInt(1, 5) }}"
+          expect:
+            - statusCode: [201, 400, 422]
+      - think: 3
+
+  # Search products scenario (5% of traffic)
+  - name: "Search Products"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/products?search={{ $randomString() }}"
+          expect:
+            - statusCode: 200
+      - think: 2
+
+# Performance thresholds
+expect:
+  thresholds:
+    - http.response_time.p95: 2000  # 95% of requests under 2s (Requirement 1.1)
+    - http.response_time.p99: 5000  # 99% of requests under 5s
+    - http.request_rate: 50         # Minimum 50 requests per second
+    - http.codes.200: 95            # 95% success rate
+    - http.codes.4xx: 5             # Max 5% client errors
+    - http.codes.5xx: 1             # Max 1% server errors

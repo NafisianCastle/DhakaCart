@@ -1,0 +1,43 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    # Extended endurance test (2 hours)
+    - duration: 7200  # 2 hours
+      arrivalRate: 30
+      name: "Endurance test - 2 hours sustained load"
+  processor: "./processors/api-processor.js"
+
+scenarios:
+  # Realistic user behavior over extended period
+  - name: "Extended User Session"
+    weight: 100
+    flow:
+      - loop:
+          # Browse products
+          - get:
+              url: "/api/products"
+          - think: 5
+          
+          # View specific products
+          - get:
+              url: "/api/products/{{ $randomInt(1, 20) }}"
+          - think: 10
+          
+          # Search functionality
+          - get:
+              url: "/api/products?search=test"
+          - think: 3
+          
+          # Health check periodically
+          - get:
+              url: "/health"
+          - think: 30
+        count: 10  # Repeat cycle 10 times per user
+
+# Endurance test thresholds (focus on stability)
+expect:
+  thresholds:
+    - http.response_time.p95: 3000   # Consistent performance over time
+    - http.response_time.p99: 6000   # No degradation over time
+    - http.codes.200: 95             # High success rate maintained
+    - http.codes.5xx: 2              # Very low error rate over time

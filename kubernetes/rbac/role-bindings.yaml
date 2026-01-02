@@ -1,0 +1,120 @@
+---
+# Bind dhakacart-app-role to backend service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dhakacart-backend-binding
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: backend
+subjects:
+- kind: ServiceAccount
+  name: dhakacart-backend
+  namespace: dhakacart
+roleRef:
+  kind: Role
+  name: dhakacart-app-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Bind dhakacart-app-role to frontend service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dhakacart-frontend-binding
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: frontend
+subjects:
+- kind: ServiceAccount
+  name: dhakacart-frontend
+  namespace: dhakacart
+roleRef:
+  kind: Role
+  name: dhakacart-app-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Bind monitoring role to monitoring service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dhakacart-monitoring-binding
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: monitoring
+subjects:
+- kind: ServiceAccount
+  name: dhakacart-monitoring
+  namespace: dhakacart
+roleRef:
+  kind: Role
+  name: dhakacart-monitoring-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Bind cluster monitoring role to monitoring service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dhakacart-cluster-monitoring-binding
+  labels:
+    app: dhakacart
+    component: monitoring
+subjects:
+- kind: ServiceAccount
+  name: dhakacart-monitoring
+  namespace: dhakacart
+roleRef:
+  kind: ClusterRole
+  name: dhakacart-cluster-monitoring
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Example developer role binding (replace with actual user/group)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dhakacart-developers
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    role: developer
+subjects:
+# Replace with actual AWS IAM users or groups
+- kind: User
+  name: "developer@company.com"
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: "dhakacart-developers"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: dhakacart-developer-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Example operator role binding (replace with actual user/group)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dhakacart-operators
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    role: operator
+subjects:
+# Replace with actual AWS IAM users or groups
+- kind: User
+  name: "operator@company.com"
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: "dhakacart-operators"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: dhakacart-operator-role
+  apiGroup: rbac.authorization.k8s.io

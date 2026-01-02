@@ -1,0 +1,286 @@
+# Network Policies for DhakaCart
+# These policies implement network segmentation and security controls
+
+---
+# Default deny all ingress traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    policy: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+---
+# Default deny all egress traffic (except DNS)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    policy: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# Allow ingress to frontend from load balancer
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-ingress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: frontend
+    policy: ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: dhakacart
+      component: frontend
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow traffic from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+  # Allow traffic from same namespace (for health checks)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: dhakacart
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+# Allow ingress to backend from frontend and load balancer
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-ingress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: backend
+    policy: ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: dhakacart
+      component: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow traffic from frontend
+  - from:
+    - podSelector:
+        matchLabels:
+          app: dhakacart
+          component: frontend
+    ports:
+    - protocol: TCP
+      port: 5000
+  # Allow traffic from ingress controller (for direct API access)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 5000
+  # Allow traffic from monitoring (Prometheus)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 5000
+
+---
+# Allow frontend egress to backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: frontend
+    policy: egress
+spec:
+  podSelector:
+    matchLabels:
+      app: dhakacart
+      component: frontend
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow traffic to backend
+  - to:
+    - podSelector:
+        matchLabels:
+          app: dhakacart
+          component: backend
+    ports:
+    - protocol: TCP
+      port: 5000
+
+---
+# Allow backend egress to database and cache
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-egress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: backend
+    policy: egress
+spec:
+  podSelector:
+    matchLabels:
+      app: dhakacart
+      component: backend
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS for external APIs (AWS services, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow database access (RDS)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow Redis access (ElastiCache)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6379
+
+---
+# Allow monitoring ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-ingress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: monitoring
+    policy: ingress
+spec:
+  podSelector:
+    matchLabels:
+      component: monitoring
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow traffic from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 3000
+  # Allow traffic from ingress for Grafana dashboard access
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+
+---
+# Allow monitoring egress to scrape metrics
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-egress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: monitoring
+    policy: egress
+spec:
+  podSelector:
+    matchLabels:
+      component: monitoring
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow scraping metrics from all pods
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 5000
+  # Allow access to Kubernetes API
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443

@@ -1,5 +1,5 @@
 # Multi-stage build for production-ready frontend
-FROM node:18-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Production stage with nginx
-FROM nginx:1.25-alpine AS production
+FROM nginx:1.29-alpine AS production
 
 # Install security updates
 RUN apk update && apk upgrade && \

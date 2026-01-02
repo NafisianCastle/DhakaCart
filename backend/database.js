@@ -51,7 +51,7 @@ class DatabaseConnectionPool {
                 idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT) || 30000,
                 connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT) || 5000,
                 maxUses: parseInt(process.env.DB_MAX_USES) || 7500,
-                ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+                ssl: this.getSSLConfig()
             };
         }
 
@@ -67,11 +67,25 @@ class DatabaseConnectionPool {
                 idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT) || 30000,
                 connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT) || 5000,
                 maxUses: parseInt(process.env.DB_MAX_USES) || 7500,
-                ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+                ssl: this.getSSLConfig()
             };
         }
 
         return null;
+    }
+
+    getSSLConfig() {
+        // In production environments (AWS RDS), SSL is required
+        if (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true') {
+            return {
+                rejectUnauthorized: false,
+                ca: process.env.DB_SSL_CA || undefined,
+                cert: process.env.DB_SSL_CERT || undefined,
+                key: process.env.DB_SSL_KEY || undefined
+            };
+        }
+
+        return false;
     }
 
     setupEventHandlers() {

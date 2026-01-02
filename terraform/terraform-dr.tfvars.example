@@ -1,0 +1,44 @@
+# Disaster Recovery Terraform Variables
+# Copy this file to terraform-dr.tfvars and customize for your DR environment
+
+# Basic Configuration
+environment = "prod-dr"
+project_name = "dhakacart"
+
+# Disaster Recovery Region
+dr_region = "us-east-1"
+enable_cross_region_backup = true
+
+# DR VPC Configuration
+dr_vpc_cidr = "10.1.0.0/16"
+dr_public_subnet_cidrs = ["10.1.1.0/24", "10.1.2.0/24"]
+dr_private_db_subnet_cidrs = ["10.1.100.0/24", "10.1.200.0/24"]
+
+# DR Database Configuration
+dr_db_instance_class = "db.t3.small"
+dr_backup_retention_period = 30
+dr_backup_window = "05:00-06:00"
+dr_maintenance_window = "sun:06:00-sun:07:00"
+
+# Primary Region Configuration (for reference)
+aws_region = "us-west-2"
+vpc_cidr = "10.0.0.0/16"
+
+# Database Configuration
+db_instance_class = "db.t3.small"
+db_multi_az = true
+db_backup_retention_period = 30
+create_read_replica = true
+
+# EKS Configuration
+kubernetes_version = "1.28"
+node_instance_types = ["t3.medium", "t3.large"]
+node_desired_size = 3
+node_max_size = 10
+node_min_size = 1
+
+# Backup Configuration
+backup_retention_days = 90
+
+# GitHub Repository for CI/CD
+github_repository = "your-org/dhakacart"

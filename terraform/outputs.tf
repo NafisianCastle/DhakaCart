@@ -253,3 +253,78 @@ output "redis_kms_key_arn" {
   description = "KMS key ARN for Redis encryption"
   value       = aws_kms_key.elasticache.arn
 }
+# Backup System Outputs
+output "backup_s3_bucket" {
+  description = "S3 bucket for database backups"
+  value       = aws_s3_bucket.backup.bucket
+}
+
+output "backup_s3_bucket_arn" {
+  description = "ARN of the S3 bucket for database backups"
+  value       = aws_s3_bucket.backup.arn
+}
+
+output "backup_kms_key_id" {
+  description = "KMS key ID for backup encryption"
+  value       = aws_kms_key.backup.key_id
+}
+
+output "backup_kms_key_arn" {
+  description = "KMS key ARN for backup encryption"
+  value       = aws_kms_key.backup.arn
+}
+
+output "backup_lambda_function_name" {
+  description = "Name of the backup manager Lambda function"
+  value       = aws_lambda_function.backup_manager.function_name
+}
+
+output "backup_lambda_function_arn" {
+  description = "ARN of the backup manager Lambda function"
+  value       = aws_lambda_function.backup_manager.arn
+}
+
+output "backup_verifier_lambda_function_name" {
+  description = "Name of the backup verifier Lambda function"
+  value       = aws_lambda_function.backup_verifier.function_name
+}
+
+output "backup_verifier_lambda_function_arn" {
+  description = "ARN of the backup verifier Lambda function"
+  value       = aws_lambda_function.backup_verifier.arn
+}
+
+output "backup_sns_topic_arn" {
+  description = "ARN of the SNS topic for backup notifications"
+  value       = aws_sns_topic.backup_notifications.arn
+}
+
+output "db_instance_id" {
+  description = "Database instance identifier for backup operations"
+  value       = aws_db_instance.main.identifier
+}
+# Disaster Recovery Outputs
+output "dr_vpc_id" {
+  description = "VPC ID in disaster recovery region"
+  value       = var.enable_cross_region_backup ? aws_vpc.dr.id : null
+}
+
+output "dr_db_instance_id" {
+  description = "Database instance identifier in DR region"
+  value       = var.enable_cross_region_backup ? aws_db_instance.dr_replica[0].identifier : null
+}
+
+output "dr_db_endpoint" {
+  description = "Database endpoint in DR region"
+  value       = var.enable_cross_region_backup ? aws_db_instance.dr_replica[0].endpoint : null
+}
+
+output "dr_backup_s3_bucket" {
+  description = "S3 bucket for DR backups"
+  value       = aws_s3_bucket.dr_backup.bucket
+}
+
+output "dr_region" {
+  description = "Disaster recovery region"
+  value       = var.dr_region
+}

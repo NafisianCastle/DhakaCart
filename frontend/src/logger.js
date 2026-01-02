@@ -6,6 +6,19 @@ class Logger {
     }
 
     generateCorrelationId() {
+        // Use cryptographically secure random values when available
+        if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            let i = 0;
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = bytes[i++] & 0x0f; // use 4 random bits per hex digit
+                const v = c === 'x' ? r : ((r & 0x3) | 0x8); // set variant bits for 'y'
+                return v.toString(16);
+            });
+        }
+
+        // Fallback for environments without crypto.getRandomValues
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             const r = Math.random() * 16 | 0;
             const v = c === 'x' ? r : (r & 0x3 | 0x8);

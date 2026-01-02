@@ -269,3 +269,64 @@ variable "redis_maintenance_window" {
   type        = string
   default     = "sun:06:00-sun:07:00"
 }
+
+# Backup Variables
+variable "backup_retention_days" {
+  description = "Number of days to retain manual backups in S3"
+  type        = number
+  default     = 90
+}
+# Disaster Recovery Variables
+variable "dr_region" {
+  description = "AWS region for disaster recovery"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "enable_cross_region_backup" {
+  description = "Enable cross-region backup for disaster recovery"
+  type        = bool
+  default     = false
+}
+
+variable "dr_vpc_cidr" {
+  description = "CIDR block for DR VPC"
+  type        = string
+  default     = "10.1.0.0/16"
+}
+
+variable "dr_public_subnet_cidrs" {
+  description = "CIDR blocks for DR public subnets"
+  type        = list(string)
+  default     = ["10.1.1.0/24", "10.1.2.0/24"]
+}
+
+variable "dr_private_db_subnet_cidrs" {
+  description = "CIDR blocks for DR private database subnets"
+  type        = list(string)
+  default     = ["10.1.100.0/24", "10.1.200.0/24"]
+}
+
+variable "dr_db_instance_class" {
+  description = "RDS instance class for disaster recovery replica"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "dr_backup_retention_period" {
+  description = "Backup retention period in days for DR"
+  type        = number
+  default     = 30
+}
+
+variable "dr_backup_window" {
+  description = "Backup window for DR (UTC)"
+  type        = string
+  default     = "05:00-06:00"
+}
+
+variable "dr_maintenance_window" {
+  description = "Maintenance window for DR (UTC)"
+  type        = string
+  default     = "sun:06:00-sun:07:00"
+}

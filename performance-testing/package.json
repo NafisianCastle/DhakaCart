@@ -1,0 +1,32 @@
+{
+    "name": "dhakacart-performance-testing",
+    "version": "1.0.0",
+    "description": "Performance testing suite for DhakaCart application",
+    "main": "index.js",
+    "scripts": {
+        "test:load": "artillery run load-tests/api-load-test.yml",
+        "test:load:report": "artillery run --output load-test-report.json load-tests/api-load-test.yml && artillery report load-test-report.json",
+        "test:stress": "artillery run load-tests/stress-test.yml",
+        "test:spike": "artillery run load-tests/spike-test.yml",
+        "test:endurance": "artillery run load-tests/endurance-test.yml",
+        "test:lighthouse": "lighthouse-ci autorun",
+        "test:db-performance": "node db-performance/db-performance-test.js",
+        "test:all": "npm run test:load && npm run test:lighthouse && npm run test:db-performance"
+    },
+    "keywords": [
+        "performance",
+        "load-testing",
+        "artillery",
+        "lighthouse"
+    ],
+    "author": "DhakaCart Team",
+    "license": "ISC",
+    "devDependencies": {
+        "artillery": "^2.0.0",
+        "@lhci/cli": "^0.12.0",
+        "pg": "^8.16.3",
+        "redis": "^4.6.0",
+        "dotenv": "^17.2.3",
+        "uuid": "^9.0.1"
+    }
+}

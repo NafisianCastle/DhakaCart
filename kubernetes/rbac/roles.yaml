@@ -1,0 +1,133 @@
+---
+# Role for DhakaCart application pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dhakacart
+  name: dhakacart-app-role
+  labels:
+    app: dhakacart
+rules:
+# Allow reading secrets (for application configuration)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+  resourceNames: 
+    - "dhakacart-db-credentials"
+    - "dhakacart-redis-credentials"
+    - "dhakacart-app-secrets"
+# Allow reading configmaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+  resourceNames:
+    - "dhakacart-config"
+# Allow reading own pod information
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+# Allow reading services for service discovery
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list"]
+
+---
+# Role for monitoring components
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dhakacart
+  name: dhakacart-monitoring-role
+  labels:
+    app: dhakacart
+    component: monitoring
+rules:
+# Allow reading pods, services, and endpoints for monitoring
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+# Allow reading deployments and replicasets
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+# Allow reading metrics
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+---
+# ClusterRole for reading cluster-wide metrics (for Prometheus)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dhakacart-cluster-monitoring
+  labels:
+    app: dhakacart
+    component: monitoring
+rules:
+# Allow reading nodes and node metrics
+- apiGroups: [""]
+  resources: ["nodes", "nodes/proxy", "nodes/metrics"]
+  verbs: ["get", "list", "watch"]
+# Allow reading cluster-wide pods and services
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+# Allow reading deployments across namespaces
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+# Allow reading ingresses
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Role for developers (read-only access to dhakacart namespace)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dhakacart
+  name: dhakacart-developer-role
+  labels:
+    app: dhakacart
+    role: developer
+rules:
+# Read-only access to most resources
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["get", "list", "watch"]
+# Allow viewing logs
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list"]
+# Allow port-forwarding for debugging
+- apiGroups: [""]
+  resources: ["pods/portforward"]
+  verbs: ["create"]
+# Deny access to secrets
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: []
+
+---
+# Role for operators (full access to dhakacart namespace)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dhakacart
+  name: dhakacart-operator-role
+  labels:
+    app: dhakacart
+    role: operator
+rules:
+# Full access to all resources in the namespace
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]

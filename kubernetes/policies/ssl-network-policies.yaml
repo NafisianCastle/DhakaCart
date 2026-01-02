@@ -1,0 +1,176 @@
+# Additional Network Policies for SSL/TLS and secure communication
+# These policies ensure encrypted communication and proper traffic flow
+
+---
+# Allow HTTPS egress for certificate validation and external APIs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-https-egress
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    policy: ssl-security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS for external services (AWS APIs, certificate validation, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow NTP for time synchronization (important for certificate validation)
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 123
+
+---
+# Allow ingress controller to communicate with pods over HTTP (internal)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller-to-pods
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    policy: ingress-security
+spec:
+  podSelector:
+    matchLabels:
+      app: dhakacart
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow traffic from AWS Load Balancer Controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: aws-load-balancer-controller
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 5000
+    - protocol: TCP
+      port: 3000
+  # Allow health checks from ALB
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 5000
+
+---
+# Deny direct external access to pods (force through ingress)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-direct-external-access
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    policy: security
+spec:
+  podSelector:
+    matchLabels:
+      app: dhakacart
+  policyTypes:
+  - Ingress
+  ingress:
+  # Only allow traffic from within the cluster
+  - from:
+    - namespaceSelector: {}
+    - podSelector: {}
+
+---
+# Allow certificate manager communication (if using cert-manager)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cert-manager-communication
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    policy: certificate-management
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # Allow communication with Let's Encrypt ACME servers
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow communication with certificate validation endpoints
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+# Network policy for monitoring over HTTPS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-https
+  namespace: dhakacart
+  labels:
+    app: dhakacart
+    component: monitoring
+    policy: ssl-monitoring
+spec:
+  podSelector:
+    matchLabels:
+      component: monitoring
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow HTTPS traffic to monitoring dashboards
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS for external monitoring services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow scraping metrics over HTTP (internal)
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 5000

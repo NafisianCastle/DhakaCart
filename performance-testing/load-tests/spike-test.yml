@@ -1,0 +1,49 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    # Normal load baseline
+    - duration: 120
+      arrivalRate: 20
+      name: "Baseline load"
+    # Sudden spike
+    - duration: 60
+      arrivalRate: 500
+      name: "Traffic spike"
+    # Return to normal
+    - duration: 120
+      arrivalRate: 20
+      name: "Return to baseline"
+    # Second spike (larger)
+    - duration: 60
+      arrivalRate: 1000
+      name: "Larger traffic spike"
+    # Recovery
+    - duration: 180
+      arrivalRate: 20
+      name: "Recovery period"
+  processor: "./processors/api-processor.js"
+
+scenarios:
+  # Simulate sudden user influx (e.g., flash sale)
+  - name: "Flash Sale Simulation"
+    weight: 70
+    flow:
+      - get:
+          url: "/api/products"
+      - get:
+          url: "/api/products/{{ $randomInt(1, 10) }}"
+      - think: 0.5  # Minimal think time during spike
+
+  # Health check monitoring during spike
+  - name: "Health Monitoring"
+    weight: 30
+    flow:
+      - get:
+          url: "/health"
+
+# Spike test thresholds
+expect:
+  thresholds:
+    - http.response_time.p95: 8000   # Allow higher response times during spikes
+    - http.codes.200: 70             # 70% success rate during spikes
+    - http.codes.5xx: 15             # Max 15% server errors during spikes

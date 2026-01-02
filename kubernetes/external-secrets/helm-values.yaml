@@ -1,0 +1,67 @@
+# Helm values for External Secrets Operator
+# Install with: helm install external-secrets external-secrets/external-secrets -n external-secrets -f helm-values.yaml
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/external-secrets/external-secrets
+  pullPolicy: IfNotPresent
+  tag: ""
+
+serviceAccount:
+  create: false
+  name: external-secrets
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 32Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - external-secrets
+        topologyKey: kubernetes.io/hostname
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+
+podSecurityContext:
+  fsGroup: 65534
+
+metrics:
+  service:
+    enabled: true
+    port: 8080
+  serviceMonitor:
+    enabled: true
+    namespace: external-secrets
+
+webhook:
+  create: true
+  port: 9443
+  
+certController:
+  create: true
+  
+concurrent: 1
