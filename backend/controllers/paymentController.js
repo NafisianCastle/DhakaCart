@@ -24,10 +24,12 @@ const webhookLimiter = rateLimit({
 });
 
 class PaymentController {
-    constructor(dbPool, redisPool) {
+    constructor(dbPool, redisPool, webSocketService = null, emailService = null) {
         this.paymentService = new PaymentService(dbPool, redisPool);
         this.orderService = new OrderService(dbPool, redisPool);
         this.cartService = new CartService(dbPool, redisPool);
+        this.webSocketService = webSocketService;
+        this.emailService = emailService;
     }
 
     // Create payment intent for an order

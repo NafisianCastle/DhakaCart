@@ -15,8 +15,8 @@ const router = express.Router();
 // Initialize controller - will be set when routes are mounted
 let cartController = null;
 
-const initializeController = (dbPool, redisPool) => {
-    cartController = new CartController(dbPool, redisPool);
+const initializeController = (dbPool, redisPool, webSocketService = null, emailService = null) => {
+    cartController = new CartController(dbPool, redisPool, webSocketService, emailService);
 };
 
 // Apply rate limiting before authentication/authorization
@@ -37,13 +37,13 @@ router.post('/items',
     (req, res) => cartController.addToCart(req, res)
 );
 
-router.put('/items/:cartItemId(\\d+)',
+router.put('/items/:cartItemId',
     cartLimiter,
     validate(updateCartItemSchema),
     (req, res) => cartController.updateCartItem(req, res)
 );
 
-router.delete('/items/:cartItemId(\\d+)',
+router.delete('/items/:cartItemId',
     cartLimiter,
     (req, res) => cartController.removeFromCart(req, res)
 );
@@ -66,12 +66,12 @@ router.get('/orders',
     (req, res) => cartController.getOrders(req, res)
 );
 
-router.get('/orders/:orderId(\\d+)',
+router.get('/orders/:orderId',
     cartLimiter,
     (req, res) => cartController.getOrderById(req, res)
 );
 
-router.post('/orders/:orderId(\\d+)/cancel',
+router.post('/orders/:orderId/cancel',
     cartLimiter,
     validate(cancelOrderSchema),
     (req, res) => cartController.cancelOrder(req, res)

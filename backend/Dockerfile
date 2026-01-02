@@ -1,5 +1,5 @@
 # Multi-stage build for production-ready backend
-FROM node:18-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -15,7 +15,7 @@ RUN npm ci --silent
 COPY . .
 
 # Production dependencies stage
-FROM node:18-alpine AS deps
+FROM node:25-alpine AS deps
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ COPY package*.json ./
 RUN npm ci --only=production --silent && npm cache clean --force
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:25-alpine AS production
 
 # Install security updates and dumb-init
 RUN apk update && apk upgrade && \

@@ -18,8 +18,8 @@ const router = express.Router();
 // Initialize controller - will be set when routes are mounted
 let adminController = null;
 
-const initializeController = (dbPool, redisPool) => {
-    adminController = new AdminController(dbPool, redisPool);
+const initializeController = (dbPool, redisPool, webSocketService = null, emailService = null) => {
+    adminController = new AdminController(dbPool, redisPool, webSocketService, emailService);
 };
 
 // All admin routes require authentication and admin role
@@ -43,12 +43,12 @@ router.get('/users',
     (req, res) => adminController.getAllUsers(req, res)
 );
 
-router.patch('/users/:userId(\\d+)/status',
+router.patch('/users/:userId/status',
     validate(updateUserStatusSchema),
     (req, res) => adminController.updateUserStatus(req, res)
 );
 
-router.patch('/users/:userId(\\d+)/role',
+router.patch('/users/:userId/role',
     validate(updateUserRoleSchema),
     (req, res) => adminController.updateUserRole(req, res)
 );
@@ -59,16 +59,16 @@ router.get('/orders',
     (req, res) => adminController.getAllOrders(req, res)
 );
 
-router.get('/orders/:orderId(\\d+)',
+router.get('/orders/:orderId',
     (req, res) => adminController.getOrderDetails(req, res)
 );
 
-router.patch('/orders/:orderId(\\d+)/status',
+router.patch('/orders/:orderId/status',
     validate(updateOrderStatusSchema),
     (req, res) => adminController.updateOrderStatus(req, res)
 );
 
-router.patch('/orders/:orderId(\\d+)/payment-status',
+router.patch('/orders/:orderId/payment-status',
     validate(updatePaymentStatusSchema),
     (req, res) => adminController.updatePaymentStatus(req, res)
 );

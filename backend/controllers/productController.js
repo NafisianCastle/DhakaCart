@@ -23,9 +23,11 @@ const productCreateLimiter = rateLimit({
 });
 
 class ProductController {
-    constructor(dbPool, redisPool) {
+    constructor(dbPool, redisPool, webSocketService = null, emailService = null) {
         this.productService = new ProductService(dbPool, redisPool);
         this.categoryService = new CategoryService(dbPool, redisPool);
+        this.webSocketService = webSocketService;
+        this.emailService = emailService;
     }
 
     // Get all products with filtering, sorting, and pagination
@@ -305,6 +307,15 @@ class ProductController {
             const { quantity, operation } = req.validatedData;
 
             const product = await this.productService.updateStock(id, quantity, operation);
+
+            // Send real-time inventory update notification
+            if (this.webSocketService) {
+                await this.webSocketService.notifyInventoryUpdate(
+                    product.id,
+                    product.stock_quantity,
+                    10 // Low stock threshold
+                );
+            }
 
             logger.info('Product stock updated successfully', {
                 productId: product.id,

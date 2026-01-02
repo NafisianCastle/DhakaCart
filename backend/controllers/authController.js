@@ -25,8 +25,10 @@ const passwordResetLimiter = rateLimit({
 });
 
 class AuthController {
-    constructor(dbPool, redisPool) {
+    constructor(dbPool, redisPool, webSocketService = null, emailService = null) {
         this.userService = new UserService(dbPool, redisPool);
+        this.webSocketService = webSocketService;
+        this.emailService = emailService;
     }
 
     // User registration
@@ -41,6 +43,24 @@ class AuthController {
                 lastName,
                 phone
             });
+
+            // Send welcome email
+            if (this.emailService) {
+                try {
+                    await this.emailService.sendWelcomeEmail(result.user);
+                    logger.info('Welcome email sent', {
+                        userId: result.user.id,
+                        email: result.user.email
+                    });
+                } catch (emailError) {
+                    logger.error('Failed to send welcome email', {
+                        userId: result.user.id,
+                        email: result.user.email,
+                        error: emailError.message
+                    });
+                    // Don't fail registration if email fails
+                }
+            }
 
             logger.info('User registration successful', {
                 userId: result.user.id,

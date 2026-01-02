@@ -16,8 +16,8 @@ const router = express.Router();
 // Initialize controller - will be set when routes are mounted
 let authController = null;
 
-const initializeController = (dbPool, redisPool) => {
-    authController = new AuthController(dbPool, redisPool);
+const initializeController = (dbPool, redisPool, webSocketService = null, emailService = null) => {
+    authController = new AuthController(dbPool, redisPool, webSocketService, emailService);
 };
 
 // Public routes (no authentication required)

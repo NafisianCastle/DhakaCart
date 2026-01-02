@@ -23,9 +23,11 @@ const orderLimiter = rateLimit({
 });
 
 class CartController {
-    constructor(dbPool, redisPool) {
+    constructor(dbPool, redisPool, webSocketService = null, emailService = null) {
         this.cartService = new CartService(dbPool, redisPool);
         this.orderService = new OrderService(dbPool, redisPool);
+        this.webSocketService = webSocketService;
+        this.emailService = emailService;
     }
 
     // Get user's cart
@@ -240,6 +242,33 @@ class CartController {
 
             const order = await this.orderService.createOrder(userId, orderData);
 
+            // Send order confirmation email
+            if (this.emailService) {
+                try {
+                    await this.emailService.sendOrderConfirmationEmail(req.user, order);
+                    logger.info('Order confirmation email sent', {
+                        userId,
+                        orderId: order.id,
+                        email: req.user.email
+                    });
+                } catch (emailError) {
+                    logger.error('Failed to send order confirmation email', {
+                        userId,
+                        orderId: order.id,
+                        error: emailError.message
+                    });
+                    // Don't fail order creation if email fails
+                }
+            }
+
+            // Send real-time order notification
+            if (this.webSocketService) {
+                await this.webSocketService.notifyOrderUpdate(userId, {
+                    ...order,
+                    user_email: req.user.email
+                });
+            }
+
             logger.info('Order created successfully', {
                 userId,
                 orderId: order.id,
@@ -363,6 +392,14 @@ class CartController {
             const { reason } = req.validatedData;
 
             const order = await this.orderService.cancelOrder(userId, orderId, reason);
+
+            // Send real-time order status update
+            if (this.webSocketService) {
+                await this.webSocketService.notifyOrderUpdate(userId, {
+                    ...order,
+                    user_email: req.user.email
+                });
+            }
 
             logger.info('Order cancelled successfully', {
                 userId,

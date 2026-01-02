@@ -14,9 +14,11 @@ const adminLimiter = rateLimit({
 });
 
 class AdminController {
-    constructor(dbPool, redisPool) {
+    constructor(dbPool, redisPool, webSocketService = null, emailService = null) {
         this.adminService = new AdminService(dbPool, redisPool);
         this.orderService = new OrderService(dbPool, redisPool);
+        this.webSocketService = webSocketService;
+        this.emailService = emailService;
     }
 
     // Dashboard Analytics
@@ -286,6 +288,35 @@ class AdminController {
             const { status } = req.validatedData;
 
             const order = await this.orderService.updateOrderStatus(orderId, status, req.user.userId);
+
+            // Send order status update email
+            if (this.emailService && order.user_id) {
+                try {
+                    // Get user details for email
+                    const userResult = await this.adminService.getUserById(order.user_id);
+                    if (userResult) {
+                        await this.emailService.sendOrderStatusEmail(userResult, order);
+                        logger.info('Order status email sent', {
+                            orderId,
+                            userId: order.user_id,
+                            status,
+                            email: userResult.email
+                        });
+                    }
+                } catch (emailError) {
+                    logger.error('Failed to send order status email', {
+                        orderId,
+                        userId: order.user_id,
+                        error: emailError.message
+                    });
+                    // Don't fail status update if email fails
+                }
+            }
+
+            // Send real-time order status update to customer
+            if (this.webSocketService && order.user_id) {
+                await this.webSocketService.notifyOrderUpdate(order.user_id, order);
+            }
 
             logger.info('Order status updated successfully', {
                 orderId,

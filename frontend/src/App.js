@@ -3,6 +3,14 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import logger from './logger';
 
+// WebSocket Context and Hooks
+import { WebSocketProvider } from './contexts/WebSocketContext';
+import useWebSocketConnection from './hooks/useWebSocketConnection';
+
+// Real-time Components
+import NotificationCenter from './components/notifications/NotificationCenter';
+import LiveChat from './components/chat/LiveChat';
+
 // Layout Components
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -34,9 +42,13 @@ import AdminProductFormPage from './pages/AdminProductFormPage';
 const AboutPage = () => <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h1 style={{ fontSize: '1.5rem' }}>About Page - Coming Soon</h1></div>;
 const ContactPage = () => <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h1 style={{ fontSize: '1.5rem' }}>Contact Page - Coming Soon</h1></div>;
 
-function App() {
+// Main App Content Component (inside WebSocket Provider)
+function AppContent() {
   const [user, setUser] = useState(null);
   const [cartItemCount, setCartItemCount] = useState(0);
+
+  // Initialize WebSocket connection based on user state
+  useWebSocketConnection(user);
 
   useEffect(() => {
     logger.info('DhakaCart E-commerce App initialized', {
@@ -58,7 +70,8 @@ function App() {
 
       if (token && userData) {
         const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+        // Include token in user object for WebSocket connection
+        setUser({ ...parsedUser, token });
         logger.info('User session restored', { userId: parsedUser.id });
       }
     } catch (error) {
@@ -82,14 +95,25 @@ function App() {
     }
   };
 
-  const handleLogin = (userData) => {
-    setUser(userData);
+  const handleLogin = (userData, token) => {
+    // Include token for WebSocket connection
+    const userWithToken = { ...userData, token };
+    setUser(userWithToken);
     logger.info('User logged in', { userId: userData.id });
   };
 
-  const handleRegister = (userData) => {
-    setUser(userData);
+  const handleRegister = (userData, token) => {
+    // Include token for WebSocket connection
+    const userWithToken = { ...userData, token };
+    setUser(userWithToken);
     logger.info('User registered', { userId: userData.id });
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    logger.info('User logged out');
   };
 
   const handleSearch = (query) => {
@@ -109,6 +133,7 @@ function App() {
           cartItemCount={cartItemCount}
           user={user}
           onSearch={handleSearch}
+          onLogout={handleLogout}
         />
 
         <main style={{ flexGrow: 1 }}>
@@ -150,9 +175,22 @@ function App() {
         </main>
 
         <Footer />
+
+        {/* Real-time Components */}
+        <NotificationCenter />
+        <LiveChat />
       </div>
     </Router>
   );
+}
+
+function App() {
+  return (
+    <WebSocketProvider>
+      <AppContent />
+    </WebSocketProvider>
+  );
+}
 }
 
 export default App;
